@@ -2,7 +2,7 @@
 
 # Vero Quant Lab
 
-Versión objetivo: V1.0
+Versión objetivo: V1.2
 
 Última actualización: 8 Julio 2026
 
@@ -10,168 +10,71 @@ Versión objetivo: V1.0
 
 # Misión
 
-Construir una plataforma personal para investigar, operar y aprender trading cuantitativo.
-
-VQL no busca reemplazar TradingView.
-
-Busca convertirse en mi centro de trabajo diario.
-
----
-
-# Objetivos de la V1
-
-✅ Ver el estado del sistema
-✅ Monitorear la operación
-✅ Investigar nuevas tecnologías
-✅ Centralizar el conocimiento
-✅ Organizar mi aprendizaje
-✅ Integrar fuentes reales (VPS, Binance, Telegram)
-
-Todo desde una única aplicación.
+Construir una plataforma personal para investigar, operar y aprender trading cuantitativo. VQL no reemplaza a TradingView: es el centro de trabajo diario y, sobre todo, **protege la operativa de la impulsividad** — el problema medido es entradas rentables convertidas en cuenta perdedora por operar sin stop.
 
 ---
 
 # Estado actual por módulo
 
-## Dashboard
+## Dashboard — ✅ Operativo
+Estado general, Trading Hoy, actividad, panel Binance, panel Telegram.
 
-Estado: ✅ Operativo
+## Operations — ✅ Operativo (con matiz)
+System Health + servicios. **Hoy corre con datos MOCK del VPS** (no hay API del VPS conectada). El estado de Telegram que muestra NO es real.
 
-Muestra:
-- Estado general (VPS, Trading Engine, Binance, Telegram)
-- Trading Hoy (P&L, trades, win rate, señales)
-- Actividad reciente
-- Alertas
-- Próxima acción
-- Binance (saldo, órdenes abiertas, precios ETH/BTC)
-- Telegram (alertas, estado del bot, errores)
+## Guardian — ✅ Operativo (Binance-only)
+Panel de riesgo sobre el enforcement que ya existe (`freno`/`stopguard`/`tpguard`). Semáforo GO / PRECAUCIÓN / BLOQUEO. Equity real desde Binance (fix del prefijo LD de Earn). Límite diario = max(10% del equity de apertura, $5). Kill-switch a 4 pérdidas consecutivas. Ver R-002.
 
-Consume TradingService, BinanceService, TelegramService.
+## Simulador A+ — 🚧 En construcción
+Componente interactivo sobre `public/aplus-features.json` (4.899 velas reales). Carril 1: sensibilidad de parámetros (RSI, ER, momentum, volumen). Carril 2 (pendiente): espejo conductual sobre el historial real.
 
----
+## Research / Knowledge / Academy — ✅ Terminados (V1)
+Lectura de Markdown desde `RESEARCH/`, `KNOWLEDGE/`, `ACADEMY/`.
 
-## Operations
-
-Estado: ✅ Operativo
-
-Muestra:
-- System Health (VPS, Trading Engine, Binance, Telegram)
-- Services (16 servicios del VPS)
-- Actividad reciente
-- Alertas
-- Métricas
-
-Consume TradingService + MonitoringService (VpsAdapter).
+## Settings — ⬜ Shell (placeholder)
+Futuro: fuente de umbrales, selección mock/HTTP, config de tema.
 
 ---
 
-## Research
+# Integraciones — real vs mock
 
-Estado: ✅ Terminado (V1)
-
-Lee archivos Markdown desde RESEARCH/.
-
-Arquitectura: ResearchService + ResearchRepository.
-
----
-
-## Knowledge
-
-Estado: ✅ Terminado (V1)
-
-Lee archivos Markdown desde KNOWLEDGE/.
-
-Renderiza markdown con react-markdown + remark-gfm.
-
----
-
-## Academy
-
-Estado: ✅ Terminado (V1)
-
-Lee archivos Markdown desde ACADEMY/.
-
-Renderiza lecciones con react-markdown.
+| Fuente | Estado | Detalle |
+|---|---|---|
+| Trading Engine (JSONL) | ✅ Real | Lee `~/Trading` (path corregido). Tolera líneas irregulares. |
+| Binance | ✅ Real | Keys en `.env.local`. ⚠️ TEMPORAL: son keys de ejecución — cambiar a read-only. |
+| VPS (Operations) | 🟡 Mock | Falta API HTTP del VPS. |
+| Telegram | 🟡 Mock | Estado del bot no es real (depende de la API del VPS). |
 
 ---
 
 # Arquitectura
 
-Frontend:
-- Next.js 15 + TypeScript + Tailwind CSS
-- Server Components por defecto
+Next.js 15 + TypeScript + Tailwind. Server Components por defecto. Patrón único: `lib/<dominio>/{service,adapter,types}`, adapter Mock por defecto y HTTP cuando hay config. La UI nunca accede directo al filesystem ni a APIs externas.
 
-Servicios:
-- TradingService — datos de trades, señales, reportes (JSONL)
-- MonitoringService — estado del VPS (VpsAdapter mock/HTTP)
-- BinanceService — saldo, órdenes, precios en vivo
-- TelegramService — alertas, estado del bot, errores
-- ResearchService — investigaciones
-- KnowledgeService — documentación
-- AcademyService — cursos
+Diseño: identidad "Guardian sereno" (dark) por tokens CSS. Colores de datos estilo Binance: `--up` verde, `--down` rojo, `--signal` oro. Tema claro + toggle: pendiente. Charting elegido (R-001): TradingView Lightweight Charts.
 
-Todos los módulos consumen Services. La UI nunca accede directamente al filesystem ni a APIs externas.
+---
 
-Patrón de integración para fuentes externas (VPS, Binance, Telegram):
-- Interfaz Adapter
-- MockAdapter (datos mock por defecto)
-- HttpAdapter (fetch a API real cuando hay credenciales/configuración)
+# Decisiones clave (sesión 8 Jul 2026)
+
+- **Capital retirado.** Se cierra la operativa manual en Capital.com. El sistema queda Binance-only.
+- **Guardian = panel de control** sobre servicios existentes, no motor nuevo (R-002 aprobada).
+- **Estabilizar antes que features.** Base consolidada: git, código muerto, design system, path fix.
+- **LabService** sigue leyendo `fs` directo — homologar a adapter DIFERIDO conscientemente.
+- **Simulador A+** con 2 carriles, reutilizable en Academy.
+- **Vercel**: se busca dashboard real (camino B), con prerequisitos primero.
 
 ---
 
 # Principios
 
-- No construir funciones innecesarias.
-- Cada módulo debe resolver un problema real.
+- No construir funciones innecesarias. Cada módulo resuelve un problema real.
 - Toda investigación termina en una decisión.
-- Git es la fuente de verdad.
+- Git es la fuente de verdad. La app es interfaz, nunca origen ni ejecutor.
 - Primero usar. Después mejorar.
-
----
-
-# Roadmap
-
-FASE 1 — Base (completada)
-
-✅ Dashboard
-✅ Operations
-✅ Research
-✅ Knowledge
-✅ Academy
-
-FASE 2 — Integración del laboratorio (completada)
-
-✅ Trading Engine (datos desde JSONL)
-✅ VPS (adapter monitoring)
-✅ Binance (saldo, órdenes, precios)
-✅ Telegram (alertas, bot, errores)
-⬜ Logs
-⬜ Configuración
-
-FASE 3 — Investigaciones
-
-- R-001 TradingView
-- R-002 Pine
-- R-003 Backtesting
-- R-004 Lightweight Charts
-- R-005 Order Flow
-
-FASE 4 — Mejoras derivadas de investigaciones.
-
-No desarrollar funcionalidades sin una investigación previa.
 
 ---
 
 # Criterio de éxito
 
-Abro VQL todos los días.
-
-Veo el estado del sistema.
-
-Registro investigaciones.
-
-Aprendo.
-
-Tomo mejores decisiones.
-
-Si ocurre eso, VQL está cumpliendo su misión.
+Abro VQL todos los días. Veo el estado del sistema y mi riesgo. Registro investigaciones. Aprendo con el simulador. Tomo mejores decisiones y no me sobre-opero.

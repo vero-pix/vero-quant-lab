@@ -1,77 +1,78 @@
 # ROADMAP — Vero Quant Lab
 
-## Estado actual: v0.1.0 — Foundation Cleanup
+Última actualización: 8 Julio 2026
 
-El proyecto tiene diseño system completo, dominio modelado y metodología documentada, pero **cero funcionalidad ejecutable**. No hay capa de datos, autenticación, API ni investigaciones reales.
+## Dónde estamos: V1.2 — Laboratorio operativo
 
-## Fase 1: Fundación (ahora — Q3 2026)
+La base está construida y en uso. Módulos vivos: Dashboard, Operations, Research, Knowledge, Academy, Guardian. Integración real de Trading Engine y Binance. Identidad visual "Guardian sereno". El foco ya no es construir pantallas: es **conectar el laboratorio con la operación real y convertir el historial en aprendizaje**.
 
-**Objetivo**: Habilitar una investigación real end-to-end usando Git como fuente de verdad.
+Ciclo de trabajo: investigación → decisión → implementación → medición → nueva investigación.
 
-| Item | Descripción | Prioridad |
-|---|---|---|
-| Directorios base | Crear `RESEARCH/`, `KNOWLEDGE/`, `DECISIONS/`, `JOURNAL/`, `ACADEMY/` con estructura interna y READMEs | Crítica |
-| Autenticación | Supabase Auth — login, sesión, protección de rutas | Crítica |
-| File-based research | Lector de archivos Markdown desde `RESEARCH/` para visualizar investigaciones en la app | Alta |
-| Editor de investigación | Interfaz para crear/editar investigaciones con commit automático a Git | Alta |
-| Ruta Research funcional | Reemplazar EmptyStateCards con lista de investigaciones reales desde el filesystem | Alta |
-| Dashboard real | Conectar StatCards a datos reales (conteo de investigaciones activas, etc.) | Media |
-| Responsive design | Asegurar que todas las rutas existentes funcionan en mobile (consulta) | Alta |
-| Migración TW v4 | Convertir de Tailwind v3 + PostCSS a v4 + CSS-first config | Media |
-| Tests | Vitest + Testing Library para componentes críticos | Media |
+---
 
-**Entregable**: Una investigación real creada, visualizada y completada dentro de la app, con todos los cambios persistidos en Git.
+## Fase actual — Simulador A+ (carril 1)
 
-## Fase 2: Knowledge y Decisions (Q3 2026 — Q4 2026)
+**Objetivo:** entender el A+ moviendo sus parámetros y viendo el efecto en riesgo/retorno, con data real.
 
-**Objetivo**: Expandir la interfaz a los dominios de Knowledge y Decisions.
+- Componente interactivo sobre `aplus-features.json` (4.899 velas). Interacción primero.
+- Métricas en vivo: señales/día, win rate, profit factor, neto. Curva de equity.
+- Capa de narrativa que enseña (no solo números).
 
-| Item | Descripción |
-|---|---|
-| Ruta Knowledge | Visualizador de `KNOWLEDGE/` con navegación por categorías |
-| Ruta Decisions | Visualizador de `DECISIONS/` con trazabilidad a investigaciones |
-| Editor Markdown | Editor unificado para crear/editar archivos en cualquier dominio |
-| Búsqueda local | Filtro y búsqueda por texto sobre archivos Markdown |
-| Sidebar actualizado | Navegación reflejando los 5 dominios correctamente |
+**Entregable:** simulador usable en `/simulador`, reutilizable en Academy.
 
-**Entregable**: Los 3 dominios (Research, Knowledge, Decisions) editables desde la app con persistencia en Git.
+---
 
-## Fase 3: Journal y Academy (Q4 2026)
+## Próxima — Simulador A+ (carril 2): espejo conductual
 
-**Objetivo**: Completar los 5 dominios.
+**Objetivo:** convertir el historial real en el material de aprendizaje más honesto.
 
-| Item | Descripción |
-|---|---|
-| Ruta Journal | Visualizador de `JOURNAL/` con entradas por fecha |
-| Ruta Academy | Visualizador de `ACADEMY/` con progreso de estudio |
-| Dashboard completo | Vista general con estado de todos los dominios |
-| Estadísticas básicas | Conteo de investigaciones, decisiones, entradas de journal |
+- Normalizar el historial (4.811 ejecuciones, multi-instrumento) en un dataset limpio.
+- WR por condición (instrumento, con/sin stop, seguidilla, hora).
+- Simulador contrafactual: "¿qué habría cambiado con stop / con el límite diario del Guardian?".
+- Framing constructivo, no de culpa.
 
-**Entregable**: Los 5 dominios funcionales con interfaz completa.
+**Entregable:** el círculo cerrado — el historial prueba las reglas, el Guardian las hace cumplir, Academy las enseña.
 
-## Fase 4: AI y Búsqueda (2027)
+---
 
-**Objetivo**: Aumentar la capacidad de investigación con asistencia inteligente.
+## Diseño y experiencia
 
-| Item | Descripción |
-|---|---|
-| AI Copilot | Asistente contextual para formular hipótesis, revisar experimentos, detectar sesgos |
-| Búsqueda semántica | Indexación de todo el contenido Markdown para búsqueda por concepto |
-| Supabase como índice | Base de datos como caché de búsqueda, no como fuente de verdad |
-| Recomendaciones | Sugerir investigaciones relacionadas, decisiones previas, knowledge relevante |
+- Tema claro + toggle (dashboard oscuro, Academy clara).
+- Colores de datos consistentes (`--up`/`--down`/`--signal`) en todos los gráficos.
+- Lightweight Charts para el chart de precio anotado (estilo Binance).
 
-**Entregable**: Búsqueda semántica funcional sobre todo el corpus de conocimiento.
+---
 
-## Más adelante (sin fecha)
+## Seguridad y despliegue
 
-- Trading Engine (repo separado)
-- Integración con APIs de mercado para datos en vivo
-- Exportación de investigaciones a PDF
-- Versionamiento visual de investigaciones (diff entre estados)
-- Múltiples perfiles de investigación (por mercado, por estrategia)
+- **Keys Binance read-only** (reemplazar las de ejecución temporales). Prerequisito de todo lo demás.
+- **Vercel (camino B):** dashboard real accesible desde afuera. Requiere read-only keys + protección con password + API HTTP del VPS para la data real.
 
-## Criterios de paso entre fases
+---
 
-- Una fase se considera completa cuando todas las rutas del dominio asociado funcionan en producción
-- No se salta una fase para empezar la siguiente
-- Excepción: bugs críticos de seguridad o pérdida de datos en producción tienen prioridad sobre cualquier fase
+## Integraciones reales (quitar mocks)
+
+- **API HTTP del VPS** → Operations, Telegram y el estado de servicios del Guardian dejan de ser mock.
+- **Limpiar el bot de Telegram** → quitar referencias a Capital, dejarlo Binance-only.
+
+---
+
+## Academy
+
+- Convertir cada regla de oro del A+ (no perseguir, no promediar, RSI 62–70, tomar ganancia en sobrecompra) en una lección interactiva con el simulador embebido.
+
+---
+
+## Refinamientos (menores)
+
+- Automatizar el snapshot de equity de apertura (hoy captura al primer load del día).
+- Revisar el piso de $5 del límite diario para cuentas chicas (hoy domina sobre el 10%).
+- Homologar LabService al patrón adapter (diferido).
+
+---
+
+## Criterios
+
+- No se agregan pantallas sin necesidad real ni funciones "por si acaso".
+- Cada fase deja algo usable a diario.
+- Seguridad (keys, exposición) tiene prioridad sobre features.
