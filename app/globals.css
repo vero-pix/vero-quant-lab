@@ -28,10 +28,15 @@
     /* Semáforo / riesgo — Guardian sereno */
     --go: 158 40% 48%;
     --go-foreground: 158 40% 12%;
-    --caution: 40 72% 56%;
-    --caution-foreground: 40 72% 14%;
+    --caution: 38 88% 53%;
+    --caution-foreground: 38 88% 12%;
     --block: 4 62% 56%;
     --block-foreground: 4 62% 14%;
+
+    /* Datos — sube/baja, señal A+ */
+    --up: 158 74% 42%;
+    --down: 351 91% 62%;
+    --signal: 48 97% 60%;
   }
 
   * {

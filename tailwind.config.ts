@@ -61,6 +61,9 @@ const config = {
           DEFAULT: "hsl(var(--block))",
           foreground: "hsl(var(--block-foreground))",
         },
+        up: "hsl(var(--up))",
+        down: "hsl(var(--down))",
+        signal: "hsl(var(--signal))",
       },
       borderRadius: {
         lg: "var(--radius)",
