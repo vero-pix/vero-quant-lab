@@ -5,9 +5,9 @@ let instance: GuardianService | null = null;
 
 export function getGuardianService(): GuardianService {
   if (!instance) {
-    const adapter = process.env.GUARDIAN_API_URL
-      ? new HttpGuardianAdapter()
-      : new MockGuardianAdapter();
+    const hasBinanceKeys = process.env.BINANCE_API_KEY && process.env.BINANCE_SECRET_KEY;
+    const useHttp = process.env.GUARDIAN_SOURCE === "http" || hasBinanceKeys;
+    const adapter = useHttp ? new HttpGuardianAdapter() : new MockGuardianAdapter();
     instance = new GuardianService(adapter);
   }
   return instance;

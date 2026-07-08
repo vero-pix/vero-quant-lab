@@ -34,9 +34,20 @@ Definir si VQL incorpora un módulo Guardian y con qué alcance, sin duplicar el
 
 Observación registrada: en cuentas chicas el piso de $5 domina y eleva el % efectivo del límite (ej. equity $17 → 10% = $1,70, pero aplica $5 ≈ 29%). En ese régimen el 10% deja de proteger. Revisar bajar/escalar el piso si la cuenta opera en montos pequeños.
 
+## Addendum — Binance-only (2026-07-08)
+
+Capital.com quedó **retirado** de la operación. El Guardian pasa a ser **Binance-only**:
+
+- **Equity de apertura del día**: se calcula desde el balance de Binance valorizado a USD (USDT/USDC = 1; ETH/BTC con los precios `{ASSET}USDT` del snapshot). Baseline fijo del día, persistido en un archivo local de VQL (`.guardian-state.json`), **nunca** en `~/Trading`.
+- **Pérdida diaria y pérdidas consecutivas**: se derivan de `diario_trades_binance.jsonl` (cerrados = filas con `net` o `closeT`+`exitPx`). Ganancia deja `dailyLoss` en 0.
+- **Posiciones**: abiertas = filas sin `closeT`; desnudas = abiertas sin `sl`; riesgo abierto = `Σ|entryPx − sl|·size / equity`.
+- **Estado de servicios**: se reportan los guardianes **de Binance** (`binanceguard`, `binancetrailing`) vía `MonitoringService`, no los de Capital.
+
+Nota de data actual: hoy hay poca data Binance (**1 posición abierta con stop, 0 cerrados**), así que las métricas de pérdida parten en **0** y el semáforo arranca en **GO**. VQL sigue siendo interfaz: no ejecuta órdenes ni escribe en `~/Trading`.
+
 ## Estado
 
-Aprobada. Parámetros definidos. Pasa a implementación (`lib/guardian/*` + ruta `/guardian`).
+Aprobada. Parámetros definidos. En implementación: `lib/guardian/*` con adapter real Binance + ruta `/guardian`.
 
 ## Fecha
 
