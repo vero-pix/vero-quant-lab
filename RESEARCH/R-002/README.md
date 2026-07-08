@@ -1,8 +1,10 @@
 # R-002 — Guardian
 
-> **Estado**: Abierta
-> **Inicio**: 2026-07-08
+> **Estado**: Aprobada — pendiente de implementación
+> **Inicio**: 2026-07-08 · **Decisión**: 2026-07-08
 > **Objetivo**: Definir si VQL debe tener un módulo Guardian y qué debe hacer exactamente, partiendo de los servicios de riesgo que ya operan en el sistema de trading.
+>
+> **Parámetros**: límite diario = max(10% del equity de apertura del día, $5); kill-switch a 4 pérdidas consecutivas.
 
 ## Contexto
 

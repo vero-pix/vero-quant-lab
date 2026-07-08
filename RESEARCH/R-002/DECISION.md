@@ -27,9 +27,16 @@ Definir si VQL incorpora un módulo Guardian y con qué alcance, sin duplicar el
 - **Divergencia de umbrales**: si el Guardian edita umbrales que hoy viven en los plist, se define una única fuente de verdad antes de implementar (no dos configuraciones que se contradigan).
 - **Falsa sensación de bloqueo**: el semáforo BLOQUEO de V1 alerta pero no impide clicks en Capital. Debe comunicarse como señal, no como candado, hasta que exista el enforcement gemelo.
 
+## Parámetros definidos (2026-07-08)
+
+- **Límite de pérdida diaria**: `max(10% del equity de apertura del día, $5)`. El baseline es el valor de la cuenta al abrir la jornada, fijo durante el día (no se recalcula con cada trade). Piso de $5 (mismo patrón que el TP mínimo del `tpguard`).
+- **Bloqueo por pérdidas consecutivas**: 4 stops seguidos gatillan el kill-switch.
+
+Observación registrada: en cuentas chicas el piso de $5 domina y eleva el % efectivo del límite (ej. equity $17 → 10% = $1,70, pero aplica $5 ≈ 29%). En ese régimen el 10% deja de proteger. Revisar bajar/escalar el piso si la cuenta opera en montos pequeños.
+
 ## Estado
 
-Pendiente. Bloqueada por dos inputs: pérdida diaria máxima tolerable (absoluta, $) y umbral de pérdidas consecutivas (N). Definidos esos, pasa a implementación.
+Aprobada. Parámetros definidos. Pasa a implementación (`lib/guardian/*` + ruta `/guardian`).
 
 ## Fecha
 
