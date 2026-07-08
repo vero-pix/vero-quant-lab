@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   BookOpen,
   GraduationCap,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Operations", href: "/operations", icon: Activity },
   { name: "Research", href: "/research", icon: BookOpen },
   { name: "Academy", href: "/academy", icon: GraduationCap },
   { name: "Knowledge", href: "/knowledge", icon: Library },

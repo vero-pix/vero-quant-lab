@@ -50,3 +50,37 @@ export interface SystemStatusItem {
   label: string;
   value: string;
 }
+
+export interface EngineComponent {
+  name: string;
+  status: "online" | "offline" | "unknown";
+  detail: string;
+}
+
+export interface EngineStatus {
+  components: EngineComponent[];
+  lastUpdate: string;
+}
+
+export interface DailyStats {
+  tradeCount: number;
+  net: number;
+  winRate: number;
+  signalCount: number;
+}
+
+export interface ActivityEntry {
+  ts: string;
+  type: "señal" | "trade" | "reporte";
+  description: string;
+  pnl: number | null;
+  result: string | null;
+  symbol: string;
+}
+
+export interface AlertEntry {
+  ts: string;
+  severity: "info" | "warning" | "critical";
+  message: string;
+  detail: string;
+}

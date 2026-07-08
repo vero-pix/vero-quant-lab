@@ -1,19 +1,27 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { StatCard } from "@/components/stat-card";
+import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { getTradingService } from "@/lib/trading";
+import { getLabService } from "@/lib/lab";
 
 export default function DashboardPage() {
+  const trading = getTradingService();
+  const lab = getLabService();
+
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Studio overview"
+        eyebrow="Centro de operaciones"
         title="Dashboard"
-        description="Operational snapshot for research, academy content, and knowledge workflows."
+        description="Estado completo de tu operación en menos de 10 segundos."
       />
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Research streams" value="04" detail="Active workspaces" />
-        <StatCard label="Academy modules" value="12" detail="Planned lessons" />
-        <StatCard label="Knowledge notes" value="28" detail="Indexed references" />
-      </div>
+      <DashboardView
+        engineStatus={trading.getEngineStatus()}
+        dailyStats={trading.getDailyStats()}
+        recentSignals={trading.getRecentSignals(5)}
+        recentTrades={trading.getRecentTrades(5)}
+        labStatus={lab.getLabStatus()}
+        nextAction={lab.getNextAction()}
+      />
     </div>
   );
 }

@@ -15,3 +15,4 @@ pnpm-debug.log*
 .DS_Store
 storybook-static
 .storybook-home
+pnpm-lock.yaml

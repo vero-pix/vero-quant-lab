@@ -11,7 +11,7 @@ export function getTradingService(): TradingService {
   return instance;
 }
 
-export type { Trade, SignalAplus, DailyReport, DashboardData, SystemStatusItem } from "./types";
+export type { Trade, SignalAplus, DailyReport, DashboardData, SystemStatusItem, EngineStatus, EngineComponent, DailyStats, ActivityEntry, AlertEntry } from "./types";
 export type { TradingRepository } from "./repository";
 export { TradingService } from "./service";
 export { JsonTradingRepository } from "./repository";
