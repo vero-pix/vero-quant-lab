@@ -2,35 +2,35 @@
 
 ## Problema
 
-El proyecto Vero Quant Lab v0.1.0 tiene arquitectura documentada, design system completo, dominio modelado y metodología especificada, pero cero funcionalidad ejecutable. No hay capa de datos, autenticación ni API. La documentación supera 3:1 al código funcional. Sin un loop de feedback funcional, las decisiones de diseño no pueden validarse.
+Elegir la plataforma de charting para el dashboard web de VQL. TradingView es el estándar del mercado pero tiene múltiples opciones: Lightweight Charts (gratis, open-source), Charting Library (licencia comercial), o alternativas como ECharts, Chart.js, Highcharts.
 
 ## Alternativas
 
-1. **Mantener el rumbo actual**: seguir documentando, refinando tipos y expandiendo el design system hasta tener una especificación completa antes de implementar.
-
-2. **Migrar a Tailwind v4 ahora**: actualizar la base de estilos antes de agregar más componentes, aprovechando que el codebase es pequeño.
-
-3. **Construir end-to-end primero**: implementar una investigación real completa (crear, leer, almacenar) conectando Supabase + autenticación + Server Actions, postergando docs y refinamiento estético.
+1. **TradingView Lightweight Charts (Apache 2.0, gratis)**: ~12 KB gzipped, solo financial charts, Canvas 60fps
+2. **TradingView Charting Library (comercial)**: Full terminal experience, requiere negociar licencia
+3. **Apache ECharts (Apache 2.0, gratis)**: ~80-130 KB gzipped, candlesticks + todo tipo de charts
+4. **Chart.js (MIT, gratis)**: ~66 KB gzipped, candlesticks necesita plugin
+5. **Highcharts (comercial)**: ~200 KB+ gzipped, caro sin ventaja real para financial data
+6. **Recharts (MIT, gratis)**: ~50 KB gzipped, SVG, mal rendimiento con datos financieros grandes
 
 ## Decisión
 
-**Opción 3 — Construir end-to-end primero.**
+**Opción 1 — TradingView Lightweight Charts.**
 
 ## Justificación
 
-1. **Evidencia directa del codebase**: 17 archivos de documentación vs 0 archivos de especificación implementada (`specs/` vacío). La documentación actual no se sostiene porque no ha sido validada por implementación.
+1. **Especificidad**: Lightweight Charts fue construido por TradingView para financial time-series. Candlesticks, line, area, volume histogram son ciudadanos de primera clase.
+2. **Rendimiento**: Canvas rendering mantiene 60fps con 10K+ puntos. Maneja actualizaciones en tiempo real sin jank.
+3. **Bundle**: ~12 KB gzipped — el más pequeño de todas las alternativas.
+4. **Licencia**: Apache 2.0 — sin restricciones, sin pagos, sin atribución obligatoria en UI (se puede hacer via logo opcional).
+5. **Futuro**: Si VQL necesita pie charts, heatmaps o treemaps, se agrega ECharts como biblioteca secundaria sin reemplazar el charting financiero.
 
-2. **Riesgo de abstracción prematura**: el análisis identificó 10 status enums para entidades que no existen, 296 líneas de metodología sin ejecutar, y design system sin consumidores reales. Cada día sin implementación aumenta la probabilidad de que estas abstracciones sean incorrectas.
+## Riesgo mitigado
 
-3. **La opción 1 no resuelve el problema**: más documentación sobre un sistema sin datos no produce aprendizaje. La opción 2 (migrar TW v4) es tácticamente correcta pero no crítica — los componentes actuales son pocos y la migración será igual de fácil en 2 semanas si se mantiene la disciplina.
-
-4. **Una investigación end-to-end validará o invalidará** el modelo de dominio, la metodología y las necesidades reales del design system en el mismo acto de construirla.
-
-## Impacto
-
-- **Positivo**: se obtendrá el primer artefacto funcional del proyecto. Las decisiones de diseño (dominio, componentes, metodología) podrán evaluarse contra uso real.
-- **Negativo**: posterga la migración a TW v4 y la expansión del design system.
-- **Riesgo mitigado**: la deuda técnica de TW v3 se mantiene manejable porque el codebase es pequeño (~500 líneas de componentes).
+El único riesgo es que Lightweight Charts solo hace financial charts. Para dashboards que necesiten gráficos no-financieros (ej. distribución de P&L por símbolo como pie chart), necesitaremos una segunda biblioteca. Esto no es un problema real porque:
+- El dashboard de VQL es 90% financial charts
+- Agregar ECharts como dependencia secundaria es trivial y no conflictivo
+- La mayoría de proyectos fintech siguen esta misma estrategia (Lightweight Charts + ECharts/Recharts)
 
 ## Estado
 
@@ -39,12 +39,3 @@ Aprobada.
 ## Fecha
 
 2026-07-08
-
-## Revisión futura
-
-Revisar en 2 semanas o al completar la primera investigación end-to-end, lo que ocurra primero. En ese punto evaluar:
-
-- ¿El modelo de dominio necesitó cambios?
-- ¿La metodología stage-gate se usó o se ignoró?
-- ¿Los componentes del design system cubrieron las necesidades reales?
-- ¿Migrar a TW v4 ahora o postergar?
