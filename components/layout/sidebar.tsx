@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Library,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Operations", href: "/operations", icon: Activity },
+  { name: "Guardian", href: "/guardian", icon: ShieldCheck },
   { name: "Research", href: "/research", icon: BookOpen },
   { name: "Academy", href: "/academy", icon: GraduationCap },
   { name: "Knowledge", href: "/knowledge", icon: Library },
