@@ -4,26 +4,34 @@
 
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 7%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 173 80% 40%;
-    --primary-foreground: 222 47% 5%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 263 70% 58%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 173 80% 40%;
-    --radius: 0.5rem;
+    --background: 220 24% 9%;
+    --foreground: 210 22% 90%;
+    --card: 220 20% 12%;
+    --card-foreground: 210 22% 90%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 210 22% 90%;
+    --primary: 172 52% 46%;
+    --primary-foreground: 220 24% 9%;
+    --secondary: 220 16% 18%;
+    --secondary-foreground: 210 22% 90%;
+    --muted: 220 14% 18%;
+    --muted-foreground: 215 14% 62%;
+    --accent: 218 38% 60%;
+    --accent-foreground: 220 24% 9%;
+    --destructive: 4 60% 56%;
+    --destructive-foreground: 210 22% 90%;
+    --border: 220 16% 17%;
+    --input: 220 16% 17%;
+    --ring: 172 52% 46%;
+    --radius: 0.75rem;
+
+    /* Semáforo / riesgo — Guardian sereno */
+    --go: 158 40% 48%;
+    --go-foreground: 158 40% 12%;
+    --caution: 40 72% 56%;
+    --caution-foreground: 40 72% 14%;
+    --block: 4 62% 56%;
+    --block-foreground: 4 62% 14%;
   }
 
   * {

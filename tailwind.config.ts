@@ -49,6 +49,18 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        go: {
+          DEFAULT: "hsl(var(--go))",
+          foreground: "hsl(var(--go-foreground))",
+        },
+        caution: {
+          DEFAULT: "hsl(var(--caution))",
+          foreground: "hsl(var(--caution-foreground))",
+        },
+        block: {
+          DEFAULT: "hsl(var(--block))",
+          foreground: "hsl(var(--block-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

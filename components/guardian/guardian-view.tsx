@@ -1,13 +1,7 @@
 import { Activity, Layers, ShieldCheck, TrendingDown } from "lucide-react";
-import { StatusBadge, SectionHeading, type StatusTone } from "@/components/design-system";
+import { StatusBadge, SectionHeading } from "@/components/design-system";
 import type { GuardianSnapshot, SemaforoEstado } from "@/lib/guardian";
 import { cn } from "@/lib/utils";
-
-const semaforoTone: Record<SemaforoEstado, StatusTone> = {
-  GO: "ready",
-  PRECAUCION: "pending",
-  BLOQUEO: "danger",
-};
 
 const semaforoLabel: Record<SemaforoEstado, string> = {
   GO: "GO",
@@ -15,10 +9,32 @@ const semaforoLabel: Record<SemaforoEstado, string> = {
   BLOQUEO: "Bloqueo",
 };
 
-const semaforoDot: Record<SemaforoEstado, string> = {
-  GO: "bg-emerald-500",
-  PRECAUCION: "bg-amber-400",
-  BLOQUEO: "bg-rose-500",
+// Dirección "Guardian sereno": el semáforo usa los tokens go/caution/block.
+const semaforoStyles: Record<
+  SemaforoEstado,
+  { dot: string; heading: string; border: string; bg: string; badge: string }
+> = {
+  GO: {
+    dot: "bg-go",
+    heading: "text-go",
+    border: "border-go/40",
+    bg: "bg-go/10",
+    badge: "border-go/40 bg-go/15 text-go",
+  },
+  PRECAUCION: {
+    dot: "bg-caution",
+    heading: "text-caution",
+    border: "border-caution/40",
+    bg: "bg-caution/10",
+    badge: "border-caution/40 bg-caution/15 text-caution",
+  },
+  BLOQUEO: {
+    dot: "bg-block",
+    heading: "text-block",
+    border: "border-block/40",
+    bg: "bg-block/10",
+    badge: "border-block/40 bg-block/15 text-block",
+  },
 };
 
 function fmtUsd(n: number) {
@@ -29,33 +45,41 @@ export function GuardianView({ snapshot }: { snapshot: GuardianSnapshot }) {
   const { semaforo, dailyLoss, consecutiveLosses, positions, services, updatedAt } = snapshot;
   const pctUsed = Math.min(Math.max(dailyLoss.pctUsed, 0), 1);
 
+  const s = semaforoStyles[semaforo.estado];
+
   return (
     <div className="space-y-8">
+      {/* El semáforo es el protagonista: el estado de riesgo manda la vista. */}
       <section>
-        <div
-          className={cn(
-            "rounded-lg border bg-card p-5",
-            semaforo.estado === "BLOQUEO" && "border-rose-500/40",
-            semaforo.estado === "PRECAUCION" && "border-amber-400/40",
-            semaforo.estado === "GO" && "border-emerald-500/40",
-          )}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+        <div className={cn("rounded-xl border p-6 sm:p-8", s.border, s.bg)}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
               <span
-                className={cn("inline-flex size-3 rounded-full", semaforoDot[semaforo.estado])}
+                className={cn("inline-flex size-4 shrink-0 rounded-full", s.dot)}
                 aria-hidden="true"
               />
-              <h2 className="text-lg font-semibold text-foreground">
-                {semaforoLabel[semaforo.estado]}
-              </h2>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Estado de riesgo
+                </p>
+                <h2 className={cn("text-3xl font-semibold tracking-tight sm:text-4xl", s.heading)}>
+                  {semaforoLabel[semaforo.estado]}
+                </h2>
+              </div>
             </div>
-            <StatusBadge tone={semaforoTone[semaforo.estado]}>Semáforo</StatusBadge>
+            <span
+              className={cn(
+                "inline-flex h-6 shrink-0 items-center rounded-md border px-2 text-xs font-medium",
+                s.badge,
+              )}
+            >
+              Semáforo
+            </span>
           </div>
-          <ul className="mt-4 space-y-1.5">
+          <ul className="mt-5 space-y-2">
             {semaforo.razones.map((razon, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <span className="mt-1.5 inline-flex size-1.5 shrink-0 rounded-full bg-muted-foreground" />
+              <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/80">
+                <span className={cn("mt-1.5 inline-flex size-1.5 shrink-0 rounded-full", s.dot)} />
                 {razon}
               </li>
             ))}
