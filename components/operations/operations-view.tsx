@@ -1,9 +1,10 @@
-import { Activity, AlertTriangle, Info, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, Bell, Info, TrendingUp } from "lucide-react";
 import { StatusBadge } from "@/components/design-system";
 import { SystemHealthCard } from "@/components/operations/system-health-card";
 import { ServiceRow } from "@/components/operations/service-row";
 import type { EngineStatus, ActivityEntry, AlertEntry, DailyStats } from "@/lib/trading";
 import type { SystemHealthData, ServiceInfo } from "@/lib/monitoring";
+import type { LogEntry } from "@/lib/logs";
 import { cn, pnlClass, pnlText } from "@/lib/utils";
 
 function SectionHeading({ icon: Icon, title }: { icon: typeof Activity; title: string }) {
@@ -21,6 +22,28 @@ function severityBadge(s: string) {
   return <StatusBadge tone="neutral">Info</StatusBadge>;
 }
 
+function levelDot(level: LogEntry["level"]) {
+  const colors = {
+    info: "bg-muted-foreground",
+    success: "bg-emerald-500",
+    warning: "bg-amber-400",
+    error: "bg-destructive",
+    critical: "bg-rose-500",
+  };
+  return <span className={cn("inline-flex size-1.5 rounded-full shrink-0", colors[level])} />;
+}
+
+function sourceLabel(source: LogEntry["source"]) {
+  const labels: Record<LogEntry["source"], string> = {
+    engine: "Engine",
+    binance: "Binance",
+    telegram: "Telegram",
+    system: "Sistema",
+    vps: "VPS",
+  };
+  return labels[source];
+}
+
 function OperationsView({
   engineStatus,
   activityFeed,
@@ -28,6 +51,7 @@ function OperationsView({
   dailyStats,
   systemHealth,
   services,
+  logEntries,
 }: {
   engineStatus: EngineStatus | null;
   activityFeed: ActivityEntry[];
@@ -35,6 +59,7 @@ function OperationsView({
   dailyStats: DailyStats | null;
   systemHealth: SystemHealthData;
   services: ServiceInfo[];
+  logEntries: LogEntry[];
 }) {
   return (
     <div className="space-y-8">
@@ -169,6 +194,44 @@ function OperationsView({
             {dailyStats ? pnlText(dailyStats.net) : "—"}
           </p>
         </div>
+      </section>
+
+      <section>
+        <SectionHeading icon={Bell} title="Logs del sistema" />
+        <div className="mt-3 space-y-1">
+          {logEntries.length > 0 ? (
+            logEntries.slice(0, 25).map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-start gap-3 rounded-lg border bg-card/50 px-4 py-2 text-sm"
+              >
+                <span className="mt-1.5 shrink-0">{levelDot(entry.level)}</span>
+                <span className="w-14 shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                  {new Date(entry.ts).toLocaleString("es-CL", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <span className="w-16 shrink-0 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {sourceLabel(entry.source)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-foreground">{entry.message}</p>
+                  {entry.detail && (
+                    <p className="truncate text-xs text-muted-foreground">{entry.detail}</p>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin registros.</p>
+          )}
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {logEntries.length > 0
+            ? `Mostrando las últimas ${Math.min(logEntries.length, 25)} entradas`
+            : "No hay datos disponibles"}
+        </p>
       </section>
     </div>
   );
