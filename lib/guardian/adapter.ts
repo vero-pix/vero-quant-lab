@@ -104,12 +104,19 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Los balances de Binance Simple Earn / Flexible Savings llegan con prefijo "LD"
+// (LDUSDT, LDETH). Normalizamos al asset subyacente para valorizarlos como spot.
+function normalizeAsset(asset: string): string {
+  return asset.startsWith("LD") && asset.length > 2 ? asset.slice(2) : asset;
+}
+
 // Valoriza los balances de Binance a USD. USDT/USDC = 1; el resto con el precio
 // {ASSET}USDT del snapshot. Asset sin precio conocido -> 0 (neutro, no crash).
 function computeEquityUsd(snapshot: BinanceSnapshot): number {
   const priceOf = (asset: string): number => {
-    if (asset === "USDT" || asset === "USDC") return 1;
-    return snapshot.prices[`${asset}USDT`] ?? 0;
+    const a = normalizeAsset(asset);
+    if (a === "USDT" || a === "USDC") return 1;
+    return snapshot.prices[`${a}USDT`] ?? 0;
   };
   return snapshot.balances.reduce(
     (sum, b) => sum + (b.free + b.locked) * priceOf(b.asset),
@@ -170,19 +177,27 @@ export class HttpGuardianAdapter implements GuardianAdapter {
   }
 
   // Baseline fijo del día: si el archivo es de hoy, se reusa; si no, se captura
-  // el equity actual, se persiste y se usa.
+  // el equity actual, se persiste y se usa. Nunca persistimos ni usamos un
+  // baseline <= 0 (equity vacío/erróneo): eso congelaría el día en 0; en ese
+  // caso tratamos el baseline como "no disponible" y usamos el equity del momento.
   private resolveEquityDayOpen(currentEquity: number): number {
     const today = todayIso();
     try {
       if (existsSync(this.statePath)) {
         const state = JSON.parse(readFileSync(this.statePath, "utf-8"));
-        if (state?.date === today && typeof state.equityDayOpen === "number") {
+        if (
+          state?.date === today &&
+          typeof state.equityDayOpen === "number" &&
+          state.equityDayOpen > 0
+        ) {
           return state.equityDayOpen;
         }
       }
     } catch {
       // estado corrupto -> recapturamos
     }
+    // No congelar el día con un baseline no fiable.
+    if (currentEquity <= 0) return currentEquity;
     try {
       writeFileSync(
         this.statePath,
