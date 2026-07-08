@@ -1,0 +1,3 @@
+# MASTER BLUEPRINT
+
+Proyecto inicial.
