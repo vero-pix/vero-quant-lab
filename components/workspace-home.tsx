@@ -6,55 +6,69 @@ import {
   Bot,
   Brain,
   GraduationCap,
-  LineChart,
   Library,
+  LineChart,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import type { DashboardData, SystemStatusItem } from "@/lib/trading";
 
-const workspaceActions = [
-  {
-    title: "Research",
-    description: "Continuar investigaciones y experimentos.",
-    icon: Brain,
-    status: "Ready",
-  },
-  {
-    title: "Trading",
-    description: "Ir al Trading Engine.",
-    icon: LineChart,
-    status: "Pending",
-  },
-  {
-    title: "Academy",
-    description: "Continuar escribiendo el curso.",
-    icon: GraduationCap,
-    status: "Ready",
-  },
-  {
-    title: "Knowledge",
-    description: "Documentación y arquitectura.",
-    icon: Library,
-    status: "Ready",
-  },
-  {
-    title: "AI Copilot",
-    description: "Próximamente.",
-    icon: Bot,
-    status: "Planned",
-    disabled: true,
-  },
-];
+export function WorkspaceHome({
+  dashboard,
+  systemStatus,
+}: {
+  dashboard?: DashboardData;
+  systemStatus?: SystemStatusItem[];
+}) {
+  const tradingStatus =
+    dashboard?.tradingStatus === "active" ? "Active" : "Pending";
 
-const systemStatus = [
-  { label: "Research", value: "Ready" },
-  { label: "Academy", value: "Ready" },
-  { label: "Knowledge", value: "Ready" },
-  { label: "Trading Engine", value: "Pending Integration" },
-  { label: "AI Copilot", value: "Planned" },
-];
+  const tradingDescription = dashboard
+    ? `${dashboard.signalCount} señales A+, ${dashboard.tradeCount} trades`
+    : "Ir al Trading Engine.";
 
-export function WorkspaceHome() {
+  const workspaceActions = [
+    {
+      title: "Research",
+      description: "Continuar investigaciones y experimentos.",
+      icon: Brain,
+      status: "Ready" as const,
+    },
+    {
+      title: "Trading",
+      description: tradingDescription,
+      icon: LineChart,
+      status: tradingStatus,
+    },
+    {
+      title: "Academy",
+      description: "Continuar escribiendo el curso.",
+      icon: GraduationCap,
+      status: "Ready" as const,
+    },
+    {
+      title: "Knowledge",
+      description: "Documentación y arquitectura.",
+      icon: Library,
+      status: "Ready" as const,
+    },
+    {
+      title: "AI Copilot",
+      description: "Próximamente.",
+      icon: Bot,
+      status: "Planned" as const,
+      disabled: true,
+    },
+  ];
+
+  const displayStatus = systemStatus ?? [
+    { label: "Research", value: "Ready" },
+    { label: "Academy", value: "Ready" },
+    { label: "Knowledge", value: "Ready" },
+    { label: "Trading Engine", value: "Pending Integration" },
+    { label: "AI Copilot", value: "Planned" },
+  ];
+
   return (
     <div className="space-y-12 py-4">
       <motion.section
@@ -145,7 +159,7 @@ export function WorkspaceHome() {
         >
           <h2 className="text-lg font-semibold text-foreground">Estado del sistema</h2>
           <div className="mt-6 space-y-4">
-            {systemStatus.map((item) => (
+            {displayStatus.map((item) => (
               <div key={item.label} className="flex items-baseline gap-3 text-sm">
                 <span className="shrink-0 text-muted-foreground">{item.label}</span>
                 <span className="min-w-6 flex-1 border-b border-dotted border-border" />
