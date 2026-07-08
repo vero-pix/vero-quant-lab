@@ -1,20 +1,11 @@
 import { Activity, AlertTriangle, Bell, Info, TrendingUp } from "lucide-react";
-import { StatusBadge } from "@/components/design-system";
+import { StatusBadge, SectionHeading } from "@/components/design-system";
 import { SystemHealthCard } from "@/components/operations/system-health-card";
 import { ServiceRow } from "@/components/operations/service-row";
 import type { EngineStatus, ActivityEntry, AlertEntry, DailyStats } from "@/lib/trading";
 import type { SystemHealthData, ServiceInfo } from "@/lib/monitoring";
 import type { LogEntry } from "@/lib/logs";
 import { cn, pnlClass, pnlText } from "@/lib/utils";
-
-function SectionHeading({ icon: Icon, title }: { icon: typeof Activity; title: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <Icon className="size-4 text-primary" />
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-    </div>
-  );
-}
 
 function severityBadge(s: string) {
   if (s === "critical") return <StatusBadge tone="danger">Crítica</StatusBadge>;
