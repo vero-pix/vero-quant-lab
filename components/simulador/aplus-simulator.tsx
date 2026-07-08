@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Check, Minus, X } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -27,6 +28,10 @@ interface Candle {
   mom5: number;
   atr: number;
   volr: number;
+  ema9: number;
+  ema21: number;
+  vol: number;
+  pullback: boolean;
 }
 
 interface Settings {
@@ -36,9 +41,11 @@ interface Settings {
   er5Min: number;
   momAtr: number;
   volrMin: number;
+  useEmaTrend: boolean;
+  usePullback: boolean;
 }
 
-// A+ calibrado
+// A+ calibrado (A+_construccion.md)
 const DEFAULTS: Settings = {
   rsiMin: 50,
   rsiMax: 70,
@@ -46,10 +53,13 @@ const DEFAULTS: Settings = {
   er5Min: 0.25,
   momAtr: 0.6,
   volrMin: 1.0,
+  useEmaTrend: true,
+  usePullback: true,
 };
 
 const MIN_SAMPLE = 12; // menos que esto = muestra no fiable
 const MAX_HOLD = 120; // velas máximas dentro del trade
+const LIQ_MIN = 50; // paso 1 "mercado vivo": volumen absoluto mínimo (LIQ_MIN real)
 
 type Tone = "up" | "caution" | "down" | "signal" | "muted";
 
@@ -74,6 +84,9 @@ function simulate(rows: Candle[], s: Settings): SimResult {
     const c = rows[i];
     const fires =
       c.atr > 0 &&
+      c.vol >= LIQ_MIN && // paso 1: mercado vivo
+      (!s.useEmaTrend || c.ema9 > c.ema21) && // paso 4: alcista
+      (!s.usePullback || c.pullback) && // paso 5: pullback al EMA9
       c.rsi >= s.rsiMin &&
       c.rsi <= s.rsiMax &&
       c.er >= s.er1Min &&
@@ -156,6 +169,52 @@ function verdict(res: SimResult, s: Settings): { text: string; tone: Tone } {
   return { text: `PF ${r2(pf)} con ${r1(perDay)} señales/día: hay edge pero flojo, busca afinar los filtros.`, tone: "caution" };
 }
 
+// ---- Checklist A+ (8 condiciones de A+_construccion.md) ----
+type StepState = "ok" | "fail" | "off" | "nomodel";
+
+interface Step {
+  n: number | string;
+  label: string;
+  detail: string;
+  pct: number | null;
+  state: StepState;
+}
+
+function computeChecklist(rows: Candle[], s: Settings): Step[] {
+  const n = rows.length;
+  let liq = 0, er1 = 0, er5 = 0, ema = 0, pb = 0, mom = 0, rsi = 0, volr = 0;
+  for (const c of rows) {
+    if (c.vol >= LIQ_MIN) liq++;
+    if (c.er >= s.er1Min) er1++;
+    if (c.er5 >= s.er5Min) er5++;
+    if (c.ema9 > c.ema21) ema++;
+    if (c.pullback) pb++;
+    if (c.mom5 >= s.momAtr * c.atr) mom++;
+    if (c.rsi >= s.rsiMin && c.rsi <= s.rsiMax) rsi++;
+    if (c.volr >= s.volrMin) volr++;
+  }
+  const pct = (x: number) => (n ? (x / n) * 100 : 0);
+  // ✓ si al menos algunas velas lo cumplen; ✗ si el umbral no deja pasar ninguna.
+  const st = (count: number, on = true): StepState => (!on ? "off" : count > 0 ? "ok" : "fail");
+
+  return [
+    { n: 1, label: "Mercado vivo", detail: "volumen ≥ 50", pct: pct(liq), state: st(liq) },
+    { n: 2, label: "Tendencia 1m", detail: `ER ≥ ${s.er1Min.toFixed(2)}`, pct: pct(er1), state: st(er1) },
+    { n: 3, label: "Tendencia 5m", detail: `ER ≥ ${s.er5Min.toFixed(2)}`, pct: pct(er5), state: st(er5) },
+    { n: 4, label: "Tendencia alcista", detail: "EMA9 > EMA21", pct: pct(ema), state: st(ema, s.useEmaTrend) },
+    { n: 5, label: "Pullback al EMA9", detail: "precio − EMA9 ≤ 0.5×ATR", pct: pct(pb), state: st(pb, s.usePullback) },
+    { n: 6, label: "Rebote con momentum", detail: `mom5 ≥ ${s.momAtr.toFixed(1)}×ATR`, pct: pct(mom), state: st(mom) },
+    { n: 7, label: "RSI en banda", detail: `${Math.round(s.rsiMin)}–${Math.round(s.rsiMax)}`, pct: pct(rsi), state: st(rsi) },
+    { n: 8, label: "Volumen del rebote", detail: `volr ≥ ${s.volrMin.toFixed(1)}`, pct: pct(volr), state: st(volr) },
+  ];
+}
+
+// Confirmaciones del indicador real que aún no modelamos (sin inventar su estado).
+const UNMODELED: Step[] = [
+  { n: "+", label: "VWAP", detail: "precio sobre su VWAP (confirmación manual)", pct: null, state: "nomodel" },
+  { n: "+", label: "Distancia a resistencia", detail: "espacio hasta la próxima resistencia", pct: null, state: "nomodel" },
+];
+
 // ---- helpers de formato ----
 const toneText: Record<Tone, string> = {
   up: "text-up",
@@ -226,6 +285,69 @@ function Metric({
   );
 }
 
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+          checked ? "bg-primary" : "bg-secondary",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 size-4 rounded-full bg-background transition-transform",
+            checked ? "translate-x-4" : "translate-x-0.5",
+          )}
+        />
+      </button>
+    </label>
+  );
+}
+
+const stepIcon: Record<StepState, { Icon: typeof Check; cls: string }> = {
+  ok: { Icon: Check, cls: "text-up" },
+  fail: { Icon: X, cls: "text-down" },
+  off: { Icon: Minus, cls: "text-muted-foreground" },
+  nomodel: { Icon: Minus, cls: "text-muted-foreground" },
+};
+
+function ChecklistRow({ step }: { step: Step }) {
+  const { Icon, cls } = stepIcon[step.state];
+  return (
+    <li className="flex items-center gap-3 py-2">
+      <span className="w-4 shrink-0 text-center text-xs font-semibold text-muted-foreground tabular-nums">
+        {step.n}
+      </span>
+      <Icon className={cn("size-4 shrink-0", cls)} aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">{step.label}</p>
+        <p className="truncate text-xs text-muted-foreground">{step.detail}</p>
+      </div>
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+        {step.state === "nomodel"
+          ? "no modelado aún"
+          : step.state === "off"
+            ? "desactivado"
+            : `${Math.round(step.pct ?? 0)}% velas`}
+      </span>
+    </li>
+  );
+}
+
 export function AplusSimulator() {
   const [rows, setRows] = useState<Candle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -251,6 +373,7 @@ export function AplusSimulator() {
 
   const res = useMemo(() => (rows && rows.length ? simulate(rows, s) : null), [rows, s]);
   const v = res ? verdict(res, s) : null;
+  const checklist = useMemo(() => (rows && rows.length ? computeChecklist(rows, s) : null), [rows, s]);
 
   const set = (k: keyof Settings) => (value: number) => setS((prev) => ({ ...prev, [k]: value }));
 
@@ -308,6 +431,18 @@ export function AplusSimulator() {
         <Slider label="ER 5m mín" value={s.er5Min} min={0} max={0.8} step={0.01} onChange={set("er5Min")} display={s.er5Min.toFixed(2)} />
         <Slider label="Momentum (×ATR)" value={s.momAtr} min={0} max={3} step={0.1} onChange={set("momAtr")} display={`${s.momAtr.toFixed(1)}×`} />
         <Slider label="Volumen rel. mín" value={s.volrMin} min={0} max={3} step={0.1} onChange={set("volrMin")} display={s.volrMin.toFixed(1)} />
+        <div className="space-y-3 border-t pt-4">
+          <Toggle
+            label="Tendencia alcista (EMA9 > EMA21)"
+            checked={s.useEmaTrend}
+            onChange={(v) => setS((prev) => ({ ...prev, useEmaTrend: v }))}
+          />
+          <Toggle
+            label="Pullback al EMA9"
+            checked={s.usePullback}
+            onChange={(v) => setS((prev) => ({ ...prev, usePullback: v }))}
+          />
+        </div>
         <p className="pt-1 text-xs text-muted-foreground">
           {rows.length.toLocaleString("es-CL")} velas ETH 1m · {res ? res.days.toFixed(1) : "—"} días
         </p>
@@ -378,6 +513,24 @@ export function AplusSimulator() {
             )}
           </div>
         </div>
+
+        {/* Checklist A+ — las 8 condiciones del indicador real */}
+        {checklist && (
+          <div className="rounded-lg border bg-card p-5">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Checklist A+</h3>
+              <span className="text-xs text-muted-foreground">% de velas que cumple cada paso</span>
+            </div>
+            <ul className="mt-3 divide-y divide-border">
+              {checklist.map((step) => (
+                <ChecklistRow key={step.n} step={step} />
+              ))}
+              {UNMODELED.map((step, i) => (
+                <ChecklistRow key={`nm-${i}`} step={step} />
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
