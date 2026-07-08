@@ -193,7 +193,7 @@ export class TradingService {
       ts: s.fecha,
       type: "señal" as const,
       description: `Señal A+ ${s.symbol} @ $${s.entry.toFixed(0)}`,
-      pnl: s.pnl,
+      pnl: s.pnl ?? null,
       result: s.resultado,
       symbol: s.symbol,
     }));

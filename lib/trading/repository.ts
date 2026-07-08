@@ -10,7 +10,7 @@ export interface TradingRepository {
   getLatestReportText(): { balance: number | null; date: string | null };
 }
 
-const DEFAULT_PATH = resolve(homedir(), "Desktop", "Trading");
+const DEFAULT_PATH = resolve(homedir(), "Trading");
 
 export class JsonTradingRepository implements TradingRepository {
   private basePath: string;
@@ -57,10 +57,16 @@ export class JsonTradingRepository implements TradingRepository {
       const raw = readFileSync(filePath, "utf-8");
       return raw
         .split("\n")
+        .map((line) => line.trim())
         .filter(Boolean)
         .map((line) => {
+          // Algunas líneas traen basura antes del JSON (ej. un "1" pegado en la
+          // primera línea del diario). Recortamos hasta el primer { o [.
+          const start = line.search(/[{[]/);
+          if (start === -1) return null;
           try {
-            return JSON.parse(line.trim()) as T;
+            // Posiciones abiertas vienen sin net/closeT: son JSON válido, no rompen.
+            return JSON.parse(line.slice(start)) as T;
           } catch {
             return null;
           }
