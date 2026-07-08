@@ -1,19 +1,19 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { ResearchWorkspace } from "@/components/research/research-workspace";
-import { getLabService } from "@/lib/lab";
+import { ResearchList } from "@/components/research/research-list";
+import { getResearchService } from "@/lib/research";
 
 export default function ResearchPage() {
-  const lab = getLabService();
-  const research = lab.listResearch();
+  const service = getResearchService();
+  const projects = service.list();
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Research"
         title="Investigaciones"
-        description="Administra tus investigaciones. Cada aprendizaje se convierte en conocimiento permanente."
+        description="Cada investigación termina en una decisión concreta."
       />
-      <ResearchWorkspace research={research} />
+      <ResearchList projects={projects} />
     </div>
   );
 }

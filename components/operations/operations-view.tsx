@@ -1,31 +1,10 @@
 import { Activity, AlertTriangle, Info, TrendingUp } from "lucide-react";
 import { StatusBadge } from "@/components/design-system";
+import { SystemHealthCard } from "@/components/operations/system-health-card";
+import { ServiceRow } from "@/components/operations/service-row";
 import type { EngineStatus, ActivityEntry, AlertEntry, DailyStats } from "@/lib/trading";
-import { cn } from "@/lib/utils";
-
-function Dot({ status }: { status: string }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex size-2.5 rounded-full shrink-0",
-        status === "online" && "bg-primary",
-        status === "offline" && "bg-destructive",
-        status === "unknown" && "bg-muted-foreground",
-      )}
-      aria-hidden="true"
-    />
-  );
-}
-
-function pnlClass(v: number): string {
-  if (v > 0) return "text-primary";
-  if (v < 0) return "text-destructive";
-  return "text-foreground";
-}
-
-function pnlText(v: number): string {
-  return `${v >= 0 ? "+" : ""}$${v.toFixed(2)}`;
-}
+import type { SystemHealthData, ServiceInfo } from "@/lib/monitoring";
+import { cn, pnlClass, pnlText } from "@/lib/utils";
 
 function SectionHeading({ icon: Icon, title }: { icon: typeof Activity; title: string }) {
   return (
@@ -47,32 +26,38 @@ function OperationsView({
   activityFeed,
   alerts,
   dailyStats,
+  systemHealth,
+  services,
 }: {
   engineStatus: EngineStatus | null;
   activityFeed: ActivityEntry[];
   alerts: AlertEntry[];
   dailyStats: DailyStats | null;
+  systemHealth: SystemHealthData;
+  services: ServiceInfo[];
 }) {
   return (
     <div className="space-y-8">
       <section>
-        <SectionHeading icon={Activity} title="Estado de servicios" />
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {engineStatus?.components.map((c) => (
-            <div key={c.name} className="rounded-lg border bg-card/50 px-3 py-2.5 text-center">
-              <div className="flex justify-center">
-                <Dot status={c.status} />
-              </div>
-              <p className="mt-1 text-xs font-medium text-foreground">{c.name}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {c.status === "online" ? "Online" : c.status === "offline" ? "Offline" : "—"}
-              </p>
-            </div>
+        <SectionHeading icon={Activity} title="System Health" />
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {systemHealth.components.map((c) => (
+            <SystemHealthCard key={c.id} name={c.name} status={c.status} detail={c.detail} />
           ))}
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Última actualización: {engineStatus?.lastUpdate ?? "—"}
-        </p>
+        <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground">
+          <span>Heartbeat: {systemHealth.heartbeat}</span>
+          <span>Actualizado: {systemHealth.updatedAt}</span>
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading icon={TrendingUp} title="Services" />
+        <div className="mt-3 space-y-2">
+          {services.map((s) => (
+            <ServiceRow key={s.id} {...s} />
+          ))}
+        </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">

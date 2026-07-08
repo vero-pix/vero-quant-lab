@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -60,6 +61,26 @@ type PageTitleProps = {
   description?: ReactNode;
   className?: string;
 };
+
+type SectionHeadingProps = {
+  icon: LucideIcon;
+  title: string;
+  subtitle?: string;
+};
+
+export function SectionHeading({ icon: Icon, title, subtitle }: SectionHeadingProps) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex size-9 items-center justify-center rounded-md border bg-secondary">
+        <Icon className="size-4 text-primary" />
+      </div>
+      <div>
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
+      </div>
+    </div>
+  );
+}
 
 export function PageTitle({ eyebrow, title, description, className }: PageTitleProps) {
   return (

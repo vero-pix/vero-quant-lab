@@ -1,11 +1,23 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { BinancePanel } from "@/components/binance/binance-panel";
+import { TelegramPanel } from "@/components/telegram/telegram-panel";
 import { getTradingService } from "@/lib/trading";
-import { getLabService } from "@/lib/lab";
+import { getBinanceService } from "@/lib/binance";
+import { getTelegramService } from "@/lib/telegram";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
   const trading = getTradingService();
-  const lab = getLabService();
+  const binance = getBinanceService();
+  const telegram = getTelegramService();
+
+  const [engineStatus, dailyStats, activityFeed, binanceSnapshot, telegramSnapshot] = await Promise.all([
+    Promise.resolve(trading.getEngineStatus()),
+    Promise.resolve(trading.getDailyStats()),
+    Promise.resolve(trading.getActivityFeed(5)),
+    binance.getSnapshot(),
+    telegram.getSnapshot(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -15,13 +27,20 @@ export default function DashboardPage() {
         description="Estado completo de tu operación en menos de 10 segundos."
       />
       <DashboardView
-        engineStatus={trading.getEngineStatus()}
-        dailyStats={trading.getDailyStats()}
-        recentSignals={trading.getRecentSignals(5)}
-        recentTrades={trading.getRecentTrades(5)}
-        labStatus={lab.getLabStatus()}
-        nextAction={lab.getNextAction()}
+        engineStatus={engineStatus}
+        dailyStats={dailyStats}
+        activityFeed={activityFeed}
+        lastSignal={trading.getRecentSignals(1)[0] ?? null}
+        lastTrade={trading.getRecentTrades(1)[0] ?? null}
+        tradingStatus={trading.getDashboard().tradingStatus}
       />
+      <BinancePanel
+        balances={binanceSnapshot.balances}
+        openOrders={binanceSnapshot.openOrders}
+        prices={binanceSnapshot.prices}
+        updatedAt={binanceSnapshot.updatedAt}
+      />
+      <TelegramPanel snapshot={telegramSnapshot} />
     </div>
   );
 }

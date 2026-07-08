@@ -1,9 +1,16 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { OperationsView } from "@/components/operations/operations-view";
 import { getTradingService } from "@/lib/trading";
+import { getMonitoringService } from "@/lib/monitoring";
 
-export default function OperationsPage() {
+export default async function OperationsPage() {
   const trading = getTradingService();
+  const monitoring = getMonitoringService();
+
+  const [systemHealth, services] = await Promise.all([
+    monitoring.getSystemHealth(),
+    monitoring.getServices(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -17,6 +24,8 @@ export default function OperationsPage() {
         activityFeed={trading.getActivityFeed(20)}
         alerts={trading.getAlerts()}
         dailyStats={trading.getDailyStats()}
+        systemHealth={systemHealth}
+        services={services}
       />
     </div>
   );

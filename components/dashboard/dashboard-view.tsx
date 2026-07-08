@@ -1,8 +1,7 @@
-import { Activity, ArrowRight, Crosshair, FlaskConical, LineChart, Target, TrendingUp } from "lucide-react";
-import { StatusBadge } from "@/components/design-system";
-import type { EngineStatus, DailyStats, SignalAplus, Trade } from "@/lib/trading";
-import type { LabStatus, NextAction } from "@/lib/lab";
-import { cn } from "@/lib/utils";
+import { Activity, AlertTriangle, ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
+import { StatusBadge, SectionHeading } from "@/components/design-system";
+import type { EngineStatus, DailyStats, SignalAplus, Trade, ActivityEntry } from "@/lib/trading";
+import { cn, pnlClass, pnlText } from "@/lib/utils";
 
 function Dot({ status }: { status: string }) {
   return (
@@ -18,170 +17,247 @@ function Dot({ status }: { status: string }) {
   );
 }
 
-function pnlClass(value: number): string {
-  if (value > 0) return "text-primary";
-  if (value < 0) return "text-destructive";
-  return "text-foreground";
-}
-
-function pnlText(value: number): string {
-  return `${value >= 0 ? "+" : ""}$${value.toFixed(2)}`;
-}
-
-function SectionHeading({ icon: Icon, title, subtitle }: { icon: typeof Activity; title: string; subtitle?: string }) {
+function MetricCard({ label, value, className }: { label: string; value: string | number; className?: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-9 items-center justify-center rounded-md border bg-secondary">
-        <Icon className="size-4 text-primary" />
-      </div>
-      <div>
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
-      </div>
+    <div className="rounded-lg border bg-card/50 px-4 py-3 text-center">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("mt-0.5 text-xl font-semibold tabular-nums", className)}>{value}</p>
     </div>
   );
+}
+
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("es-CL", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+function getNextAction(
+  engineStatus: EngineStatus | null,
+  dailyStats: DailyStats | null,
+  lastSignal: SignalAplus | null,
+  lastTrade: Trade | null,
+): { label: string; description: string } {
+  if (!engineStatus) {
+    return { label: "Sin datos del sistema", description: "No se puede determinar el estado del laboratorio." };
+  }
+
+  const offline = engineStatus.components.find((c) => c.status === "offline");
+  if (offline) {
+    return { label: `Revisar ${offline.name}`, description: `Componente desconectado: ${offline.name}.` };
+  }
+
+  if (lastTrade && dailyStats && dailyStats.tradeCount > 0) {
+    return { label: `Revisar operación ${lastTrade.sym}`, description: `Trade ${lastTrade.dir}. P&L: ${pnlText(lastTrade.net ?? 0)}` };
+  }
+
+  if (lastSignal) {
+    return { label: `Monitorear señal ${lastSignal.symbol}`, description: `Señal A+ @ $${lastSignal.entry.toFixed(0)}` };
+  }
+
+  return { label: "No existen tareas pendientes", description: "Todo está al día." };
 }
 
 function DashboardView({
   engineStatus,
   dailyStats,
-  recentSignals,
-  recentTrades,
-  labStatus,
-  nextAction,
+  activityFeed,
+  lastSignal,
+  lastTrade,
+  tradingStatus,
 }: {
   engineStatus: EngineStatus | null;
   dailyStats: DailyStats | null;
-  recentSignals: SignalAplus[];
-  recentTrades: Trade[];
-  labStatus: LabStatus | null;
-  nextAction: NextAction | null;
+  activityFeed: ActivityEntry[];
+  lastSignal: SignalAplus | null;
+  lastTrade: Trade | null;
+  tradingStatus: "active" | "inactive" | "error";
 }) {
-  const hasResearch = labStatus?.activeResearch !== null;
+  const vps = engineStatus?.components.find((c) => c.name === "VPS") ?? null;
+  const binance = engineStatus?.components.find((c) => c.name === "Binance") ?? null;
+  const telegram = engineStatus?.components.find((c) => c.name === "Telegram") ?? null;
+
+  const tradingEngineStatus: "online" | "offline" | "unknown" =
+    tradingStatus === "active" ? "online"
+    : tradingStatus === "error" ? "offline"
+    : "offline";
+
+  const displayComponents = [
+    { key: "VPS", name: "VPS", status: vps?.status ?? "unknown", detail: vps?.detail ?? "—" },
+    { key: "Engine", name: "Trading Engine", status: tradingEngineStatus, detail: tradingStatus === "active" ? "Activo" : "Inactivo" },
+    { key: "Binance", name: "Binance", status: binance?.status ?? "unknown", detail: binance?.detail ?? "—" },
+    { key: "Telegram", name: "Telegram", status: telegram?.status ?? "unknown", detail: telegram?.detail ?? "—" },
+  ];
+
+  const allComponents = engineStatus?.components ?? [];
+  const offlineComponents = allComponents.filter((c) => c.status === "offline");
+  const unknownComponents = allComponents.filter((c) => c.status === "unknown");
+
+  let hoursSinceLastSignal: number | null = null;
+  if (lastSignal) {
+    hoursSinceLastSignal = (Date.now() - new Date(lastSignal.fecha).getTime()) / 3600000;
+  }
+
+  const engineOffline = displayComponents.find((c) => c.status === "offline");
+  const engineUnknown = displayComponents.find((c) => c.status === "unknown");
+  const hasCriticalAlert = offlineComponents.length > 0 || engineOffline !== undefined;
+  const hasWarningAlert = unknownComponents.length > 0 || engineUnknown !== undefined || (hoursSinceLastSignal !== null && hoursSinceLastSignal > 24);
+  const hasAlerts = hasCriticalAlert || hasWarningAlert;
+
+  const nextAction = getNextAction(engineStatus, dailyStats, lastSignal, lastTrade);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <section>
-        <SectionHeading icon={Activity} title="Estado del sistema" subtitle="¿Está funcionando mi sistema?" />
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {engineStatus?.components.map((c) => (
-            <div key={c.name} className="rounded-lg border bg-card/50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Dot status={c.status} />
-                <span className="text-sm font-medium text-foreground">{c.name}</span>
-              </div>
-              <p className="mt-1.5 truncate text-xs text-muted-foreground">{c.detail}</p>
-            </div>
+        <SectionHeading icon={Activity} title="Estado General" subtitle="¿El sistema está funcionando?" />
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+          {displayComponents.map((c) => (
+            <span key={c.key} className="flex items-center gap-1.5 text-sm">
+              <Dot status={c.status} />
+              <span className="font-medium text-foreground">{c.name}</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">{c.detail}</span>
+            </span>
           ))}
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Última actualización: {engineStatus?.lastUpdate ?? "—"}
-        </p>
-      </section>
-
-      <section>
-        <SectionHeading icon={LineChart} title="Actividad de trading" subtitle="¿Cómo va mi trading hoy?" />
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
-          <div className="rounded-lg border bg-card/50 p-4">
-            <div className="flex items-center gap-2">
-              <Target className="size-3.5 text-muted-foreground" />
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Últimas señales</p>
-            </div>
-            <div className="mt-3 space-y-1.5">
-              {recentSignals.length > 0 ? (
-                recentSignals.slice(0, 5).map((s, i) => (
-                  <div key={`sig-${i}`} className="flex items-center gap-2 text-sm">
-                    <span className={cn("inline-flex size-1.5 rounded-full", s.resultado === "target" ? "bg-primary" : "bg-destructive")} />
-                    <span className="w-16 text-foreground">{s.symbol}</span>
-                    <span className="w-14 text-right text-muted-foreground tabular-nums">${s.entry.toFixed(0)}</span>
-                    <StatusBadge tone={s.resultado === "target" ? "ready" : "danger"} className="text-[10px]">
-                      {s.resultado}
-                    </StatusBadge>
-                    <span className={cn("ml-auto tabular-nums", pnlClass(s.pnl))}>{pnlText(s.pnl)}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Sin señales registradas.</p>
-              )}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card/50 p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="size-3.5 text-muted-foreground" />
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Últimos trades</p>
-            </div>
-            <div className="mt-3 space-y-1.5">
-              {recentTrades.length > 0 ? (
-                recentTrades.slice(0, 5).map((t, i) => (
-                  <div key={`tr-${i}`} className="flex items-center gap-2 text-sm">
-                    <span className={cn("inline-flex size-1.5 rounded-full", (t.net ?? 0) >= 0 ? "bg-primary" : "bg-destructive")} />
-                    <span className="w-12 text-foreground">{t.sym}</span>
-                    <span className="text-muted-foreground">{t.dir}</span>
-                    <span className={cn("ml-auto tabular-nums", pnlClass(t.net ?? 0))}>{pnlText(t.net ?? 0)}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Sin trades hoy.</p>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <div className="rounded-lg border bg-card/50 px-4 py-3 text-center">
-              <p className="text-xs text-muted-foreground">Win Rate</p>
-              <p className="mt-0.5 text-xl font-semibold text-foreground">
-                {dailyStats ? `${dailyStats.winRate}%` : "—"}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card/50 px-4 py-3 text-center">
-              <p className="text-xs text-muted-foreground">P&L Hoy</p>
-              <p className={cn("mt-0.5 text-xl font-semibold tabular-nums", dailyStats ? pnlClass(dailyStats.net) : "text-foreground")}>
-                {dailyStats ? pnlText(dailyStats.net) : "—"}
-              </p>
-            </div>
-          </div>
+          <span className="ml-auto text-xs text-muted-foreground">
+            Última actualización: {engineStatus?.lastUpdate ?? "—"}
+          </span>
         </div>
       </section>
 
       <section>
-        <SectionHeading icon={FlaskConical} title="Investigación" subtitle="¿Qué estoy investigando?" />
-        <div className="mt-4 rounded-lg border bg-card/50 p-5">
-          {hasResearch ? (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground">
-                    {labStatus!.activeResearch!.id}: {labStatus!.activeResearch!.title}
-                  </p>
-                  <StatusBadge tone="ready">{labStatus!.activeResearch!.status}</StatusBadge>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Progreso: {labStatus!.activeResearch!.progress}
-                </p>
+        <SectionHeading icon={TrendingUp} title="Trading Hoy" subtitle="¿Qué pasó hoy?" />
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetricCard
+            label="P&L del día"
+            value={dailyStats ? pnlText(dailyStats.net) : "—"}
+            className={dailyStats ? pnlClass(dailyStats.net) : "text-foreground"}
+          />
+          <MetricCard label="Trades ejecutados" value={dailyStats?.tradeCount ?? "—"} />
+          <MetricCard label="Win Rate" value={dailyStats ? `${dailyStats.winRate}%` : "—"} />
+          <MetricCard label="Señales recibidas" value={dailyStats?.signalCount ?? "—"} />
+        </div>
+        {lastSignal && (
+          <div className="mt-3 flex items-center gap-3 rounded-lg border bg-card/50 px-4 py-3">
+            <span
+              className={cn(
+                "inline-flex size-1.5 rounded-full shrink-0",
+                lastSignal.resultado === "target" ? "bg-primary" : "bg-destructive",
+              )}
+            />
+            <span className="text-xs text-muted-foreground">Última señal:</span>
+            <span className="text-sm font-medium text-foreground">{lastSignal.symbol}</span>
+            <span className="text-xs text-muted-foreground">@ ${lastSignal.entry.toFixed(0)}</span>
+            <StatusBadge tone={lastSignal.resultado === "target" ? "ready" : "danger"} className="text-[10px]">
+              {lastSignal.resultado}
+            </StatusBadge>
+            <span className={cn("ml-auto tabular-nums text-sm", pnlClass(lastSignal.pnl))}>{pnlText(lastSignal.pnl)}</span>
+          </div>
+        )}
+      </section>
+
+      <section>
+        <SectionHeading icon={Activity} title="Actividad Reciente" subtitle="Últimos 5 eventos" />
+        <div className="mt-4 space-y-2">
+          {activityFeed.length > 0 ? (
+            activityFeed.map((entry, i) => (
+              <div
+                key={`act-${i}`}
+                className="flex items-center gap-3 rounded-lg border bg-card/50 px-4 py-2.5 text-sm"
+              >
+                <span
+                  className={cn(
+                    "inline-flex size-1.5 rounded-full shrink-0",
+                    entry.type === "señal" && (entry.result === "target" ? "bg-primary" : "bg-destructive"),
+                    entry.type === "trade" && ((entry.pnl ?? 0) >= 0 ? "bg-primary" : "bg-destructive"),
+                    entry.type === "reporte" && "bg-muted-foreground",
+                  )}
+                />
+                <span className="w-20 shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                  {formatTime(entry.ts)}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-foreground">{entry.description}</span>
+                {entry.pnl !== null && (
+                  <span className={cn("tabular-nums text-sm", pnlClass(entry.pnl))}>{pnlText(entry.pnl)}</span>
+                )}
               </div>
-              <div className="text-right text-xs text-muted-foreground">
-                <p>{labStatus!.researchCount} investigación(es) total(es)</p>
-              </div>
-            </div>
+            ))
           ) : (
-            <p className="text-sm text-muted-foreground">No hay investigaciones activas.</p>
+            <p className="text-sm text-muted-foreground">Sin actividad reciente.</p>
           )}
         </div>
       </section>
 
       <section>
-        <SectionHeading icon={Crosshair} title="Próxima acción" subtitle="¿Qué debería hacer ahora?" />
+        <SectionHeading
+          icon={AlertTriangle}
+          title="Alertas"
+          subtitle={hasAlerts ? "Requiere atención" : "Todo en orden"}
+        />
+        <div className="mt-4">
+          {hasCriticalAlert ? (
+            <div className="space-y-2">
+              {offlineComponents.map((c) => (
+                <div key={c.name} className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/[0.03] px-4 py-3">
+                  <AlertTriangle className="size-4 shrink-0 text-destructive" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{c.name} desconectado</p>
+                    <p className="text-xs text-muted-foreground">{c.detail}</p>
+                  </div>
+                </div>
+              ))}
+              {tradingStatus !== "active" && (
+                <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/[0.03] px-4 py-3">
+                  <AlertTriangle className="size-4 shrink-0 text-destructive" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Trading Engine inactivo</p>
+                    <p className="text-xs text-muted-foreground">No hay actividad de trading reciente.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : hasWarningAlert ? (
+            <div className="space-y-2">
+              {unknownComponents.map((c) => (
+                <div key={c.name} className="flex items-center gap-3 rounded-lg border bg-card/50 px-4 py-3">
+                  <AlertTriangle className="size-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{c.name} sin datos</p>
+                    <p className="text-xs text-muted-foreground">{c.detail}</p>
+                  </div>
+                </div>
+              ))}
+              {hoursSinceLastSignal !== null && hoursSinceLastSignal > 24 && lastSignal && (
+                <div className="flex items-center gap-3 rounded-lg border bg-card/50 px-4 py-3">
+                  <AlertTriangle className="size-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Sin señales hace 24 horas</p>
+                    <p className="text-xs text-muted-foreground">Última señal: {formatTime(lastSignal.fecha)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 rounded-lg border bg-card/50 px-4 py-3">
+              <CheckCircle2 className="size-4 shrink-0 text-primary" />
+              <p className="text-sm text-foreground">Sistema funcionando correctamente</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <SectionHeading icon={ArrowRight} title="Próxima Acción" subtitle="¿Qué debo hacer ahora?" />
         <div className="mt-4 rounded-lg border border-primary/20 bg-primary/[0.03] p-5">
           <div className="flex items-start gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-primary/10">
               <ArrowRight className="size-4 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-base font-semibold text-foreground">
-                {nextAction?.label ?? "Sin tareas pendientes"}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {nextAction?.description ?? "Todo está al día."}
-              </p>
+              <p className="text-base font-semibold text-foreground">{nextAction.label}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{nextAction.description}</p>
             </div>
           </div>
         </div>

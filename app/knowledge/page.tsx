@@ -1,16 +1,19 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { KnowledgeList } from "@/components/knowledge/knowledge-list";
+import { getKnowledgeService } from "@/lib/knowledge";
 
 export default function KnowledgePage() {
+  const service = getKnowledgeService();
+  const docs = service.list();
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Library"
         title="Knowledge"
-        description="Organized space for concepts, references, frameworks, and reusable notes."
+        description="Conceptos, referencias y documentación permanente."
       />
-      <section className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-        Knowledge workspace ready.
-      </section>
+      <KnowledgeList docs={docs} />
     </div>
   );
 }

@@ -1,16 +1,19 @@
 import { PageHeader } from "@/components/layout/page-header";
+import { AcademyList } from "@/components/academy/academy-list";
+import { getAcademyService } from "@/lib/academy";
 
 export default function AcademyPage() {
+  const service = getAcademyService();
+  const modules = service.listModules();
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Learning"
         title="Academy"
-        description="Content hub for lessons, study tracks, and internal learning material."
+        description="Biblioteca personal de módulos y lecciones."
       />
-      <section className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-        Academy workspace ready.
-      </section>
+      <AcademyList modules={modules} />
     </div>
   );
 }
