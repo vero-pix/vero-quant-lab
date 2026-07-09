@@ -1,6 +1,8 @@
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
 import { StatusBadge, SectionHeading } from "@/components/design-system";
 import { AplusLivePanel } from "@/components/dashboard/aplus-live-panel";
+import { ZonasPanel } from "@/components/dashboard/zonas-panel";
+import { CasiPanel } from "@/components/dashboard/casi-panel";
 import type { EngineStatus, DailyStats, SignalAplus, Trade, ActivityEntry } from "@/lib/trading";
 import { cn, pnlClass, pnlText } from "@/lib/utils";
 
@@ -129,6 +131,10 @@ function DashboardView({
       </section>
 
       <AplusLivePanel />
+
+      <ZonasPanel />
+
+      <CasiPanel />
 
       <section>
         <SectionHeading icon={TrendingUp} title="Trading Hoy" subtitle="¿Qué pasó hoy?" />
