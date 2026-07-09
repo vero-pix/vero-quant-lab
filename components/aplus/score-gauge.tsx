@@ -55,15 +55,25 @@ function Ring({ value }: { value: number }) {
   );
 }
 
+const SYMBOLS = [
+  { id: "ETHUSDT", label: "ETH" },
+  { id: "BTCUSDT", label: "BTC" },
+] as const;
+type SymbolId = (typeof SYMBOLS)[number]["id"];
+
 export function ScoreGauge() {
+  const [symbol, setSymbol] = useState<SymbolId>("ETHUSDT");
   const [score, setScore] = useState<AplusScore | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
+    // Al cambiar de símbolo mostramos el estado de carga hasta la primera lectura.
+    setScore(null);
+    setLoading(true);
     async function load() {
       try {
-        const r = await fetch("/api/aplus-score", { cache: "no-store" });
+        const r = await fetch(`/api/aplus-score?symbol=${symbol}`, { cache: "no-store" });
         const data = (await r.json()) as AplusScore;
         if (alive) setScore(data);
       } catch {
@@ -75,11 +85,32 @@ export function ScoreGauge() {
     load();
     const id = setInterval(load, POLL_MS);
     return () => { alive = false; clearInterval(id); };
-  }, []);
+  }, [symbol]);
+
+  const activeLabel = SYMBOLS.find((s) => s.id === symbol)?.label ?? "ETH";
 
   return (
     <section>
-      <SectionHeading icon={Gauge} title="Score A+" subtitle="ETH · medidor 0-100 de calidad del setup en vivo" />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <SectionHeading icon={Gauge} title="Score A+" subtitle={`${activeLabel} · medidor 0-100 de calidad del setup en vivo`} />
+        {/* Selector de símbolo — BTC es informativo (no ejecuta), solo lectura. */}
+        <div className="inline-flex shrink-0 rounded-lg border bg-secondary/50 p-0.5" role="group" aria-label="Símbolo del Score A+">
+          {SYMBOLS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSymbol(s.id)}
+              aria-pressed={symbol === s.id}
+              className={cn(
+                "rounded-md px-3 py-1 text-xs font-semibold transition-colors",
+                symbol === s.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loading && !score ? (
         <div className="mt-4 rounded-lg border bg-card/50 px-4 py-6 text-center text-sm text-muted-foreground">Calculando score…</div>
