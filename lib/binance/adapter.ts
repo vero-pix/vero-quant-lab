@@ -12,8 +12,8 @@ const MOCK_BALANCES: BinanceBalance[] = [
 ];
 
 const MOCK_ORDERS: BinanceOrder[] = [
-  { symbol: "ETHUSDT", side: "BUY", type: "LIMIT", price: 1680.00, origQty: 0.15, executedQty: 0, status: "NEW" },
-  { symbol: "BTCUSDT", side: "SELL", type: "LIMIT", price: 63500.00, origQty: 0.002, executedQty: 0, status: "NEW" },
+  // ETH protegido con un stop (SELL STOP_LOSS_LIMIT). BTC queda naked.
+  { symbol: "ETHUSDT", side: "SELL", type: "STOP_LOSS_LIMIT", price: 1600.00, stopPrice: 1610.00, origQty: 0.47, executedQty: 0, status: "NEW" },
 ];
 
 const MOCK_PRICES: Record<string, number> = {
@@ -96,6 +96,7 @@ export class HttpBinanceAdapter implements BinanceAdapter {
       return data.map((o) => ({
         ...o,
         price: Number.parseFloat(String(o.price)),
+        stopPrice: Number.parseFloat(String(o.stopPrice ?? 0)) || 0,
         origQty: Number.parseFloat(String(o.origQty)),
         executedQty: Number.parseFloat(String(o.executedQty)),
       }));
@@ -104,11 +105,11 @@ export class HttpBinanceAdapter implements BinanceAdapter {
     }
   }
 
+  // Trae TODOS los precios USDT del exchange para poder valorizar cualquier
+  // holding (no solo ETH/BTC). Endpoint público, sin firma.
   private async fetchPrices(): Promise<Record<string, number>> {
     try {
-      const symbols = ["ETHUSDT", "BTCUSDT"];
-      const params = new URLSearchParams({ symbols: JSON.stringify(symbols) });
-      const res = await fetch(`${this.baseUrl}/api/v3/ticker/price?${params}`, {
+      const res = await fetch(`${this.baseUrl}/api/v3/ticker/price`, {
         next: { revalidate: 30 },
       });
       if (!res.ok) return MOCK_PRICES;

@@ -20,6 +20,18 @@ export interface GuardianPositions {
   averaging: boolean;
 }
 
+// Un holding cripto en vivo (spot/Earn) valorizado > $1 = posición abierta.
+export interface GuardianHolding {
+  asset: string; // símbolo normalizado, ej. "ETH"
+  pair: string; // par de valorización, ej. "ETHUSDT"
+  qty: number;
+  valueUsd: number;
+  hasStop: boolean; // existe orden de stop protegiendo el holding
+  hasTp: boolean; // existe orden de take-profit
+  protected: boolean; // hasStop
+  naked: boolean; // !hasStop -> riesgo real
+}
+
 export interface GuardianServiceStatus {
   id: string;
   name: string;
@@ -39,6 +51,7 @@ export interface GuardianSnapshot {
   dailyLoss: GuardianDailyLoss;
   consecutiveLosses: GuardianConsecutiveLosses;
   positions: GuardianPositions;
+  holdings: GuardianHolding[];
   services: GuardianServiceStatus[];
   semaforo: GuardianSemaforo;
 }

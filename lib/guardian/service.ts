@@ -10,7 +10,7 @@ export class GuardianService {
   }
 
   private computeSemaforo(snapshot: GuardianSnapshot): GuardianSemaforo {
-    const { dailyLoss, consecutiveLosses, positions } = snapshot;
+    const { dailyLoss, consecutiveLosses, positions, holdings } = snapshot;
 
     const bloqueo: string[] = [];
     if (dailyLoss.current >= dailyLoss.limitUsd) {
@@ -24,8 +24,10 @@ export class GuardianService {
       );
     }
     if (positions.naked > 0) {
+      const nakedSymbols = holdings.filter((h) => h.naked).map((h) => h.asset);
+      const detalle = nakedSymbols.length > 0 ? ` (${nakedSymbols.join(", ")})` : "";
       bloqueo.push(
-        `${positions.naked} posición(es) sin stop loss.`,
+        `${positions.naked} posición(es) sin stop loss${detalle}.`,
       );
     }
     if (positions.riskPct > positions.riskLimitPct) {

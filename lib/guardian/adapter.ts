@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
-import { getBinanceService, type BinanceService, type BinanceSnapshot } from "@/lib/binance";
+import { getBinanceService, type BinanceService, type BinanceSnapshot, type BinanceOrder } from "@/lib/binance";
 import { getMonitoringService, type MonitoringService } from "@/lib/monitoring";
-import type { GuardianSnapshot } from "./types";
+import type { GuardianHolding, GuardianSnapshot } from "./types";
 
 export interface GuardianAdapter {
   fetchSnapshot(): Promise<GuardianSnapshot>;
@@ -43,6 +43,10 @@ const MOCK_SNAPSHOT: Omit<GuardianSnapshot, "updatedAt"> = {
     maxPos: MAX_POS,
     averaging: false,
   },
+  holdings: [
+    { asset: "ETH", pair: "ETHUSDT", qty: 0.47, valueUsd: 811.13, hasStop: true, hasTp: false, protected: true, naked: false },
+    { asset: "BTC", pair: "BTCUSDT", qty: 0.0085, valueUsd: 529.89, hasStop: false, hasTp: false, protected: false, naked: true },
+  ],
   services: [
     { id: "binanceguard", name: "vero-binanceguard", running: true },
     { id: "binancetrailing", name: "vero-binancetrailing", running: true },
@@ -124,6 +128,65 @@ function computeEquityUsd(snapshot: BinanceSnapshot): number {
   );
 }
 
+const STABLES = new Set(["USDT", "USDC", "BUSD", "FDUSD", "TUSD", "DAI"]);
+const MIN_HOLDING_USD = 1;
+
+// ¿Esta orden abierta protege un holding long (venta de stop) para el par?
+// Un stop se reconoce por tener stopPrice > 0 o un type que contenga "STOP".
+function isStopOrder(o: BinanceOrder): boolean {
+  return o.side === "SELL" && (o.stopPrice > 0 || o.type.toUpperCase().includes("STOP"));
+}
+
+// ¿Es una pata de take-profit? (TAKE_PROFIT* o la pata LIMIT_MAKER de un OCO.)
+function isTakeProfitOrder(o: BinanceOrder): boolean {
+  const t = o.type.toUpperCase();
+  return o.side === "SELL" && (t.includes("TAKE_PROFIT") || t === "LIMIT_MAKER");
+}
+
+// Deriva las posiciones en vivo: cada holding cripto (no stablecoin) valorizado
+// > $1 es una posición abierta. Se cruza con las órdenes abiertas del mismo par
+// para marcar si tiene stop (protegida) o no (naked = riesgo central).
+// Los balances Earn (LDETH, ...) se normalizan y se agregan al asset spot.
+function computeHoldings(snapshot: BinanceSnapshot): GuardianHolding[] {
+  const priceOf = (asset: string): number => {
+    if (asset === "USDT" || asset === "USDC") return 1;
+    return snapshot.prices[`${asset}USDT`] ?? 0;
+  };
+
+  // Agregamos qty por asset normalizado (spot + Earn del mismo símbolo).
+  const qtyByAsset = new Map<string, number>();
+  for (const b of snapshot.balances) {
+    const asset = normalizeAsset(b.asset);
+    if (STABLES.has(asset)) continue;
+    qtyByAsset.set(asset, (qtyByAsset.get(asset) ?? 0) + b.free + b.locked);
+  }
+
+  const holdings: GuardianHolding[] = [];
+  for (const [asset, qty] of qtyByAsset) {
+    const pair = `${asset}USDT`;
+    const valueUsd = qty * priceOf(asset);
+    if (valueUsd <= MIN_HOLDING_USD) continue;
+
+    const ordersForPair = snapshot.openOrders.filter((o) => o.symbol === pair);
+    const hasStop = ordersForPair.some(isStopOrder);
+    const hasTp = ordersForPair.some(isTakeProfitOrder);
+
+    holdings.push({
+      asset,
+      pair,
+      qty,
+      valueUsd: Number(valueUsd.toFixed(2)),
+      hasStop,
+      hasTp,
+      protected: hasStop,
+      naked: !hasStop,
+    });
+  }
+
+  // Mayor exposición primero.
+  return holdings.sort((a, b) => b.valueUsd - a.valueUsd);
+}
+
 // net del trade: usa net si viene; si no, lo deriva de exitPx/entryPx/size.
 function netOf(row: BinanceTradeRow): number | null {
   if (typeof row.net === "number") return row.net;
@@ -157,11 +220,15 @@ export class HttpGuardianAdapter implements GuardianAdapter {
     const currentEquity = computeEquityUsd(snapshot);
     const equityDayOpen = this.resolveEquityDayOpen(currentEquity);
 
-    const rows = readJsonl<BinanceTradeRow>(join(this.basePath, "diario_trades_binance.jsonl"));
+    // POSICIONES: en vivo desde Binance (holdings cripto + órdenes abiertas).
+    const holdings = computeHoldings(snapshot);
+    const positions = this.computePositions(holdings, equityDayOpen);
 
+    // Histórico (pérdida diaria / rachas): del JSONL, que queda solo de respaldo.
+    const rows = readJsonl<BinanceTradeRow>(join(this.basePath, "diario_trades_binance.jsonl"));
     const dailyLoss = this.computeDailyLoss(rows, equityDayOpen);
     const consecutiveLosses = this.computeConsecutiveLosses(rows);
-    const positions = this.computePositions(rows, equityDayOpen);
+
     const services = await this.fetchServices();
 
     return {
@@ -170,6 +237,7 @@ export class HttpGuardianAdapter implements GuardianAdapter {
       dailyLoss,
       consecutiveLosses,
       positions,
+      holdings,
       services,
       // Placeholder; GuardianService recomputa el semáforo.
       semaforo: { estado: "GO", razones: [] },
@@ -248,22 +316,17 @@ export class HttpGuardianAdapter implements GuardianAdapter {
     return { current, max: CONSECUTIVE_MAX };
   }
 
-  private computePositions(rows: BinanceTradeRow[], equityDayOpen: number) {
-    const open = rows.filter((r) => !r.closeT);
-    const naked = open.filter((r) => r.sl === undefined || r.sl === null).length;
-    const riskAbs = open
-      .filter(
-        (r) =>
-          typeof r.sl === "number" &&
-          typeof r.entryPx === "number" &&
-          typeof r.size === "number",
-      )
-      .reduce((s, r) => s + Math.abs((r.entryPx as number) - (r.sl as number)) * (r.size as number), 0);
-    const riskPct = equityDayOpen > 0 ? (riskAbs / equityDayOpen) * 100 : 0;
+  // Posiciones derivadas de los holdings en vivo. El "riesgo abierto" ya no viene
+  // de un stop registrado en JSONL, sino de la exposición cripto SIN stop (naked):
+  // capital que quedaría expuesto de golpe si el mercado va en contra.
+  private computePositions(holdings: GuardianHolding[], equityDayOpen: number) {
+    const naked = holdings.filter((h) => h.naked);
+    const nakedValue = naked.reduce((s, h) => s + h.valueUsd, 0);
+    const riskPct = equityDayOpen > 0 ? (nakedValue / equityDayOpen) * 100 : 0;
 
     return {
-      open: open.length,
-      naked,
+      open: holdings.length,
+      naked: naked.length,
       riskPct: Number(riskPct.toFixed(2)),
       riskLimitPct: RISK_LIMIT_PCT,
       maxPos: MAX_POS,

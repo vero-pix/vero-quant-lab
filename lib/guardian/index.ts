@@ -18,6 +18,7 @@ export type {
   GuardianDailyLoss,
   GuardianConsecutiveLosses,
   GuardianPositions,
+  GuardianHolding,
   GuardianServiceStatus,
   GuardianSemaforo,
   SemaforoEstado,

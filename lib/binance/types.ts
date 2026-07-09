@@ -9,6 +9,7 @@ export interface BinanceOrder {
   side: "BUY" | "SELL";
   type: string;
   price: number;
+  stopPrice: number;
   origQty: number;
   executedQty: number;
   status: string;

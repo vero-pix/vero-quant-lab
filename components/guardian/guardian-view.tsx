@@ -1,4 +1,4 @@
-import { Activity, Layers, ShieldCheck, TrendingDown } from "lucide-react";
+import { Activity, Coins, Layers, ShieldCheck, ShieldAlert, TrendingDown } from "lucide-react";
 import { StatusBadge, SectionHeading } from "@/components/design-system";
 import type { GuardianSnapshot, SemaforoEstado } from "@/lib/guardian";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ function fmtUsd(n: number) {
 }
 
 export function GuardianView({ snapshot }: { snapshot: GuardianSnapshot }) {
-  const { semaforo, dailyLoss, consecutiveLosses, positions, services, updatedAt } = snapshot;
+  const { semaforo, dailyLoss, consecutiveLosses, positions, holdings, services, updatedAt } = snapshot;
   const pctUsed = Math.min(Math.max(dailyLoss.pctUsed, 0), 1);
 
   const s = semaforoStyles[semaforo.estado];
@@ -151,6 +151,51 @@ export function GuardianView({ snapshot }: { snapshot: GuardianSnapshot }) {
             </div>
           </div>
         </div>
+      </section>
+
+      <section>
+        <SectionHeading icon={Coins} title="Posiciones en vivo (Binance)" subtitle="Holdings cripto > $1 y su estado de stop" />
+        {holdings.length === 0 ? (
+          <div className="mt-3 rounded-lg border bg-card/50 px-4 py-6 text-center text-sm text-muted-foreground">
+            Sin posiciones cripto abiertas. Solo stablecoins / efectivo.
+          </div>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {holdings.map((h) => (
+              <div
+                key={h.asset}
+                className={cn(
+                  "flex items-center justify-between gap-3 rounded-lg border px-4 py-3",
+                  h.naked ? "border-block/40 bg-block/5" : "bg-card/50",
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-foreground tabular-nums">{h.asset}</span>
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {h.qty.toLocaleString("es-CL", { maximumFractionDigits: 6 })}
+                  </span>
+                  <span className="text-sm font-medium text-foreground tabular-nums">
+                    {fmtUsd(h.valueUsd)}
+                  </span>
+                  {h.hasTp ? (
+                    <span className="hidden text-[11px] text-muted-foreground sm:inline">· con TP</span>
+                  ) : null}
+                </div>
+                {h.naked ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-block/40 bg-block/15 px-2 py-1 text-xs font-semibold text-block">
+                    <ShieldAlert className="size-3.5" />
+                    SIN STOP
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-go/40 bg-go/15 px-2 py-1 text-xs font-medium text-go">
+                    <ShieldCheck className="size-3.5" />
+                    Protegida
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section>
