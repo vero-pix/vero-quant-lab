@@ -49,6 +49,7 @@ export class HttpTelegramAdapter implements TelegramAdapter {
       const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(`${this.baseUrl}/api/telegram`, {
         signal: controller.signal,
+        headers: process.env.VPS_API_TOKEN ? { Authorization: `Bearer ${process.env.VPS_API_TOKEN}` } : undefined,
         next: { revalidate: 30 },
       });
       clearTimeout(timeout);

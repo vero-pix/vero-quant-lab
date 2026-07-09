@@ -1,6 +1,7 @@
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
 import { StatusBadge, SectionHeading } from "@/components/design-system";
 import { AplusLivePanel } from "@/components/dashboard/aplus-live-panel";
+import { SenalVivaPanel } from "@/components/dashboard/senal-viva-panel";
 import { ZonasPanel } from "@/components/dashboard/zonas-panel";
 import { CasiPanel } from "@/components/dashboard/casi-panel";
 import type { EngineStatus, DailyStats, SignalAplus, Trade, ActivityEntry } from "@/lib/trading";
@@ -129,6 +130,8 @@ function DashboardView({
           </span>
         </div>
       </section>
+
+      <SenalVivaPanel />
 
       <AplusLivePanel />
 

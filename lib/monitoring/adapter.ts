@@ -60,6 +60,7 @@ export class HttpVpsAdapter implements VpsAdapter {
       const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(`${this.baseUrl}/api/status`, {
         signal: controller.signal,
+        headers: process.env.VPS_API_TOKEN ? { Authorization: `Bearer ${process.env.VPS_API_TOKEN}` } : undefined,
         next: { revalidate: 30 },
       });
       clearTimeout(timeout);
