@@ -1,5 +1,6 @@
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
 import { StatusBadge, SectionHeading } from "@/components/design-system";
+import { ScoreGauge } from "@/components/aplus/score-gauge";
 import { AplusLivePanel } from "@/components/dashboard/aplus-live-panel";
 import { SenalVivaPanel } from "@/components/dashboard/senal-viva-panel";
 import { ZonasPanel } from "@/components/dashboard/zonas-panel";
@@ -115,6 +116,8 @@ function DashboardView({
 
   return (
     <div className="space-y-6">
+      <ScoreGauge />
+
       <section>
         <SectionHeading icon={Activity} title="Estado General" subtitle="¿El sistema está funcionando?" />
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
