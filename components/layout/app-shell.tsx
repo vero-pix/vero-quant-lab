@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { VersionBadge } from "@/components/version-badge";
 
 export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -21,6 +22,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
           {children}
         </motion.main>
       </div>
+      <VersionBadge />
     </div>
   );
 }
