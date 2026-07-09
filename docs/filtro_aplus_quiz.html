@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filtro A+ — Quiz de scalping ETH</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --surface-0: #f4f4f0;
+    --surface-1: #ebebе6;
+    --surface-2: #ffffff;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5a56;
+    --text-muted: #9a9a96;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --bg-success: #eaf3de;
+    --text-success: #3b6d11;
+    --border-success: #97c459;
+    --bg-danger: #fcebeb;
+    --text-danger: #a32d2d;
+    --border-danger: #f09595;
+    --radius: 8px;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-0: #1a1a18;
+      --surface-1: #242420;
+      --surface-2: #2e2e2a;
+      --text-primary: #f0f0ec;
+      --text-secondary: #a8a8a4;
+      --text-muted: #666662;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.15);
+      --bg-success: #173404;
+      --text-success: #97c459;
+      --border-success: #3b6d11;
+      --bg-danger: #501313;
+      --text-danger: #f09595;
+      --border-danger: #a32d2d;
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--surface-0);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat {
+    background: var(--surface-1);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .stat-val {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .stat-val.green { color: var(--text-success); }
+  .stat-val.red { color: var(--text-danger); }
+
+  .conditions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cond {
+    background: var(--surface-2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .cond-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .cond-header:hover {
+    background: var(--surface-1);
+  }
+
+  .cond-num {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    min-width: 20px;
+  }
+
+  .cond-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .cond-value {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .pass {
+    background: var(--bg-success);
+    color: var(--text-success);
+  }
+
+  .fail {
+    background: var(--bg-danger);
+    color: var(--text-danger);
+  }
+
+  .chevron {
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+
+  .chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .cond-body {
+    display: none;
+    padding: 12px 14px 14px;
+    border-top: 0.5px solid var(--border);
+    background: var(--surface-1);
+  }
+
+  .cond-body.open {
+    display: block;
+  }
+
+  .cond-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .quiz-q {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .opts {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .opt {
+    background: var(--surface-2);
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    line-height: 1.4;
+    transition: background 0.1s;
+  }
+
+  .opt:hover:not(:disabled) {
+    background: var(--surface-1);
+  }
+
+  .opt.correct {
+    background: var(--bg-success);
+    border-color: var(--border-success);
+    color: var(--text-success);
+  }
+
+  .opt.wrong {
+    background: var(--bg-danger);
+    border-color: var(--border-danger);
+    color: var(--text-danger);
+  }
+
+  .opt:disabled {
+    cursor: default;
+  }
+
+  .fb {
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    line-height: 1.5;
+    display: none;
+  }
+
+  .fb.show { display: block; }
+  .fb.ok { background: var(--bg-success); color: var(--text-success); }
+  .fb.ko { background: var(--bg-danger); color: var(--text-danger); }
+
+  .reset-btn {
+    margin-top: 1.25rem;
+    background: transparent;
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 7px 16px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .reset-btn:hover {
+    background: var(--surface-1);
+  }
+
+  .footer {
+    margin-top: 2rem;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Filtro A+ — Scalping ETH</h1>
+  <p class="subtitle">Haz clic en cada condición para ver la explicación y responder el quiz. Estado actual del snapshot: ESPERAR (4 de 9 condiciones fallan).</p>
+
+  <div class="summary">
+    <div class="stat"><div class="stat-label">Respondidas</div><div class="stat-val" id="s-ans">0 / 9</div></div>
+    <div class="stat"><div class="stat-label">Correctas</div><div class="stat-val green" id="s-ok">0</div></div>
+    <div class="stat"><div class="stat-label">Estado snapshot</div><div class="stat-val red">ESPERAR</div></div>
+  </div>
+
+  <div class="conditions" id="conds"></div>
+  <button class="reset-btn" onclick="init()">Reiniciar quiz</button>
+
+  <p class="footer">Filtro A+ creado para monitoreo de scalping en Ethereum. Quiz generado con Claude.</p>
+</div>
+
+<script>
+const data = [
+  {
+    num: 1, name: "Mercado vivo", value: "442", pass: true,
+    desc: "Cuenta de transacciones recientes o profundidad de libro. Verifica que haya suficiente liquidez para entrar y salir sin slippage relevante. Es el prerequisito de todo lo demás: sin mercado activo, el resto del filtro no tiene sentido.",
+    q: "¿Qué pasaría si ignoraras esta condición y entraras con liquidez baja?",
+    opts: [
+      { t: "Nada relevante — ETH siempre tiene liquidez suficiente en cualquier momento", c: false, fb: "Incorrecto. Hay ventanas horarias y condiciones donde el spread se amplía y la profundidad cae. Entrar con baja liquidez genera slippage que destruye el R/R del scalp." },
+      { t: "El precio de ejecución puede diferir del precio visible — el spread se come el beneficio del scalp", c: true, fb: "Exacto. En scalping los márgenes son pequeños. Un slippage de $0.30 puede convertir una operación ganadora en pérdida antes de que abra la posición." },
+      { t: "Solo afecta a posiciones grandes — en scalp con tamaño pequeño es irrelevante", c: false, fb: "Incorrecto. El slippage afecta proporcionalmente igual. Y en scalp, donde el target puede ser $1–2, incluso un slippage de $0.15 degrada el ratio significativamente." }
+    ]
+  },
+  {
+    num: 2, name: "ER 1m ≥ 0.40", value: "0.17", pass: false,
+    desc: "Efficiency Ratio en 1 minuto: mide qué fracción del movimiento total es desplazamiento neto vs. ruido. Rango 0–1. Cerca de 1 = precio se mueve en línea recta (tendencia pura). Cerca de 0 = mucho movimiento pero sin dirección (caos). Actualmente 0.17 — el mercado está zigzagueando sin tendencia en el inmediato.",
+    q: "Un ER de 0.17 en 1m significa que...",
+    opts: [
+      { t: "El precio bajó 17% en el último minuto", c: false, fb: "Incorrecto. El ER no mide variación porcentual de precio. Es un ratio de eficiencia: desplazamiento neto dividido por la suma de todos los movimientos." },
+      { t: "Por cada dólar de volatilidad total, solo $0.17 son desplazamiento real — el resto es ruido", c: true, fb: "Correcto. En scalping necesitas que el precio se mueva con dirección, no que oscile. Con ER 0.17 hay mucho movimiento pero sin tendencia explotable." },
+      { t: "El volumen relativo es bajo y no conviene entrar", c: false, fb: "Incorrecto. El volumen lo mide la condición 7 (VolR). El ER mide calidad de la tendencia de precio, independiente del volumen." }
+    ]
+  },
+  {
+    num: 3, name: "ER 5m ≥ 0.40", value: "0.20", pass: false,
+    desc: "Mismo indicador pero en timeframe de 5 minutos. El scalp en 1m debe estar alineado con la dirección en 5m. Si el ER de 5m también es bajo, no hay estructura tendencial en ningún timeframe relevante — operar sería apostar al ruido.",
+    q: "¿Por qué el filtro exige ER alto en AMBOS timeframes y no solo en uno?",
+    opts: [
+      { t: "Porque son el mismo indicador — si uno pasa el otro también pasa siempre", c: false, fb: "Incorrecto. Pueden divergir. Por ejemplo: ER 5m alto (tendencia clara en 5m) pero ER 1m bajo (retroceso o consolidación en el inmediato). El filtro distingue esa diferencia." },
+      { t: "Para confirmar que la tendencia existe tanto en el impulso inmediato como en el timeframe de referencia superior", c: true, fb: "Exacto. Es un sistema de doble confirmación. El 5m da el contexto estructural; el 1m da la señal de entrada. Sin ambos alineados, la entrada es prematura o en contra de la estructura." },
+      { t: "Porque el ER de 5m mide volumen institucional y el de 1m mide volumen retail", c: false, fb: "Incorrecto. Ambos miden eficiencia de movimiento de precio, no volumen. La diferencia es solo el timeframe de cálculo." }
+    ]
+  },
+  {
+    num: 4, name: "EMA9 > EMA21", value: "alcista", pass: true,
+    desc: "Media exponencial de 9 períodos sobre la de 21. Cuando EMA9 está por encima de EMA21, el momentum reciente supera al de mediano plazo — confirmación de impulso alcista de corto plazo. Esta condición pasa: la estructura de medias es favorable.",
+    q: "EMA9 > EMA21 confirma estructura alcista, pero ¿qué NO te dice esta condición?",
+    opts: [
+      { t: "Que el precio va a seguir subiendo de forma garantizada en los próximos minutos", c: false, fb: "Las EMAs son indicadores rezagados. Confirman lo que ya pasó, no predicen lo que vendrá. Esta opción es incorrecta porque ningún indicador garantiza dirección futura." },
+      { t: "Que el precio ya superó el VWAP del día y tiene respaldo institucional", c: false, fb: "Incorrecto. El VWAP es una condición separada (condición 8). EMA9 > EMA21 solo habla de estructura de medias, no de relación con el VWAP." },
+      { t: "La fuerza del impulso ni si el momentum está acelerando o desacelerando", c: true, fb: "Exacto. El cruce confirma dirección pero no intensidad. Por eso el filtro complementa con ER (calidad de tendencia), Mom5 (momentum reciente) y VolR (respaldo de volumen)." }
+    ]
+  },
+  {
+    num: 5, name: "Pullback + Mom5 > 1.75", value: "0.00", pass: false,
+    desc: "Doble requisito: que exista un pullback (retroceso dentro de la tendencia alcista) Y que el momentum de 5 períodos supere 1.75. El pullback da precio de entrada favorable; el Mom5 confirma que la presión compradora se retoma. Un valor de 0.00 indica que no hay pullback válido en curso.",
+    q: "¿Por qué se exigen AMBAS condiciones simultáneamente y no solo una de las dos?",
+    opts: [
+      { t: "Porque el pullback sin momentum puede ser el inicio de una reversión, y el momentum sin pullback implica entrada en precio alto con mal R/R", c: true, fb: "Exacto. El pullback solo te da precio bueno pero sin confirmación de retoma. El momentum solo sin pullback te hace comprar en la parte alta de la vela — riesgo de comprar el techo. Juntos filtran el punto óptimo." },
+      { t: "Porque Mom5 mide el volumen acumulado en 5 velas y el pullback confirma soporte", c: false, fb: "Incorrecto. Mom5 mide momentum de precio (variación acumulada), no volumen. El volumen lo cubre VolR (condición 7). El pullback no confirma soporte — confirma punto de entrada favorable dentro de tendencia alcista." },
+      { t: "Son redundantes — cualquiera de los dos por separado sería suficiente para una buena entrada", c: false, fb: "Incorrecto. La redundancia es deliberada. Cada uno filtra un riesgo distinto: el pullback filtra precio de entrada, el momentum filtra dirección de retoma. Solo juntos eliminan ambos riesgos." }
+    ]
+  },
+  {
+    num: 6, name: "RSI 50–62", value: "50.4", pass: true,
+    desc: "RSI acotado entre 50 y 62. El piso en 50 confirma momentum positivo (compradores dominan). El techo en 62 evita entrar en zona de sobrecompra donde la presión vendedora aumenta y el riesgo de reversión crece. Actualmente 50.4 — en el límite inferior del rango válido, pasa por poco.",
+    q: "¿Por qué el techo está en 62 y no en 70 (sobrecompra estándar)?",
+    opts: [
+      { t: "Porque en scalping de crypto el RSI es más rápido y 62 equivale al 70 de acciones", c: false, fb: "Incorrecto. El RSI se calcula igual independiente del activo. La diferencia es de lógica de scalp, no de velocidad del indicador." },
+      { t: "Para entrar antes de que el mercado alcance sobrecompra — maximizar recorrido disponible antes de la corrección", c: true, fb: "Correcto. En un scalp, el tiempo y el recorrido son escasos. Entrar con RSI en 65–70 significa que ya consumiste buena parte del impulso. El techo en 62 reserva recorrido para que el target sea alcanzable." },
+      { t: "Porque RSI > 62 indica que el volumen bajó y ya no hay interés comprador", c: false, fb: "Incorrecto. El RSI no mide volumen. Un RSI alto puede coexistir con volumen alto. La razón del techo en 62 es gestión de recorrido disponible, no señal de volumen." }
+    ]
+  },
+  {
+    num: 7, name: "VolR ≥ 1.20", value: "1.30", pass: true,
+    desc: "Volumen Relativo: volumen actual dividido por el promedio. Un VolR de 1.30 significa 30% más de volumen que el promedio histórico en esa vela. Confirma que hay participación real detrás del movimiento — reduce riesgo de fakeout por movimiento de bajo volumen.",
+    q: "Un movimiento alcista con VolR de 0.60 (bajo el umbral) debería interpretarse como...",
+    opts: [
+      { t: "Señal confiable si las demás condiciones pasan — el volumen no es tan importante en crypto", c: false, fb: "Incorrecto. El volumen bajo es una señal de alerta en cualquier activo, incluyendo crypto. Un movimiento sin respaldo de volumen es más susceptible a reversión o fakeout." },
+      { t: "Movimiento de baja convicción — posible trampa alcista sin participación institucional suficiente", c: true, fb: "Exacto. VolR bajo en un impulso alcista sugiere que pocos participantes respaldan el movimiento. Alta probabilidad de que no se sostenga — precisamente lo que el filtro busca evitar en scalp." },
+      { t: "Oportunidad de comprar antes de que llegue el volumen fuerte y el precio acelere", c: false, fb: "Incorrecto. Anticipar el volumen es especulación sobre especulación. El filtro exige confirmación presente, no predicción de volumen futuro. Entrar antes es aumentar riesgo sin mejora de R/R." }
+    ]
+  },
+  {
+    num: 8, name: "Precio > VWAP", value: "bajo", pass: false,
+    desc: "VWAP = precio promedio ponderado por volumen del día. Representa el precio justo de referencia para traders institucionales. Precio bajo VWAP significa que los compradores del día tienen pérdida promedio — la presión vendedora tiende a dominar. Esta condición falla: ETH está cotizando bajo el VWAP del día.",
+    q: "ETH está bajo el VWAP pero EMA9 > EMA21 (alcista). ¿Cómo interpretas esta contradicción?",
+    opts: [
+      { t: "Las EMAs son más confiables que el VWAP — si las medias son alcistas, hay que entrar igual", c: false, fb: "Incorrecto. Las EMAs son rezagadas y trabajan en el timeframe del gráfico. El VWAP integra todo el volumen del día y refleja el consenso de precio de los participantes más grandes del mercado intradiario." },
+      { t: "Las EMAs muestran momentum de corto plazo, pero el VWAP revela que la presión vendedora institucional del día sigue dominando — señal de conflicto estructural", c: true, fb: "Exacto. EMA9 > EMA21 puede ser un rebote técnico dentro de una tendencia bajista intradía. Entrar largo bajo VWAP es nadar contra la corriente institucional del día — el R/R es asimétrico en contra." },
+      { t: "Significa que el precio está barato respecto al VWAP — buena oportunidad de compra con margen", c: false, fb: "Incorrecto. 'Barato respecto al VWAP' es lógica de inversión, no de scalping. En scalp lo que importa es la dirección del momentum a segundos/minutos. Precio bajo VWAP sin recuperación del nivel es una trampa, no una ganga." }
+    ]
+  },
+  {
+    num: 9, name: "Lejos de R ≥ $3.0", value: "sin R arriba", pass: true,
+    desc: "Exige que no haya resistencia técnica relevante en los próximos $3 sobre el precio de entrada. Una resistencia cercana comprime el recorrido disponible y destruye el ratio riesgo/beneficio antes de que la operación comience. Actualmente: sin resistencia arriba — condición pasa.",
+    q: "¿Por qué $3.0 y no $1.0? ¿Qué determina ese umbral mínimo?",
+    opts: [
+      { t: "Es un número arbitrario — podría ser $1 o $5 sin diferencia real", c: false, fb: "Incorrecto. El umbral está calibrado para garantizar un R/R mínimo aceptable. Si el stop está en $1.5 y la resistencia está a $1, el ratio es 0.67:1 — negativo. Con $3 de espacio y stop en $1.5, el ratio es 2:1." },
+      { t: "El umbral garantiza espacio suficiente para alcanzar un R/R favorable dado el stop loss implícito del sistema", c: true, fb: "Exacto. Es matemática de R/R. Si el stop del scalp está en $1–1.5, necesitas al menos $2–3 de recorrido libre para que la operación tenga sentido. El umbral de $3 asegura ese mínimo antes de entrar." },
+      { t: "Porque ETH siempre tiene resistencias cada $3 — es una característica técnica del activo", c: false, fb: "Incorrecto. Las resistencias en ETH no tienen una distribución regular de $3. El umbral es función del sistema de trading, no de una propiedad del activo." }
+    ]
+  }
+];
+
+let scores = { ok: 0, ans: 0 };
+let answered = {};
+
+function init() {
+  scores = { ok: 0, ans: 0 };
+  answered = {};
+  render();
+}
+
+function render() {
+  const container = document.getElementById('conds');
+  container.innerHTML = '';
+  data.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'cond';
+    el.innerHTML = `
+      <div class="cond-header" onclick="toggle(${i})">
+        <span class="cond-num">${d.num}</span>
+        <span class="cond-name">${d.name}</span>
+        <span class="cond-value">${d.value}</span>
+        <span class="badge ${d.pass ? 'pass' : 'fail'}">${d.pass ? 'PASA' : 'FALLA'}</span>
+        <span class="chevron" id="chev-${i}">&#8964;</span>
+      </div>
+      <div class="cond-body" id="body-${i}">
+        <p class="cond-desc">${d.desc}</p>
+        <p class="quiz-q">${d.q}</p>
+        <div class="opts" id="opts-${i}">
+          ${d.opts.map((o, j) => `<button class="opt" id="opt-${i}-${j}" onclick="answer(${i},${j})">${o.t}</button>`).join('')}
+        </div>
+        <div class="fb" id="fb-${i}"></div>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+  updateScore();
+}
+
+function toggle(i) {
+  const body = document.getElementById('body-' + i);
+  const chev = document.getElementById('chev-' + i);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+
+function answer(qi, oi) {
+  if (answered[qi] !== undefined) return;
+  answered[qi] = oi;
+  const q = data[qi];
+  const chosen = q.opts[oi];
+  const fb = document.getElementById('fb-' + qi);
+  const opts = document.querySelectorAll('#opts-' + qi + ' .opt');
+  opts.forEach(b => b.disabled = true);
+  opts[oi].classList.add(chosen.c ? 'correct' : 'wrong');
+  if (!chosen.c) {
+    q.opts.forEach((o, j) => { if (o.c) opts[j].classList.add('correct'); });
+  }
+  fb.className = 'fb show ' + (chosen.c ? 'ok' : 'ko');
+  fb.textContent = chosen.fb;
+  if (chosen.c) scores.ok++;
+  scores.ans++;
+  updateScore();
+}
+
+function updateScore() {
+  document.getElementById('s-ans').textContent = scores.ans + ' / 9';
+  document.getElementById('s-ok').textContent = scores.ok;
+}
+
+init();
+</script>
+</body>
+</html>
