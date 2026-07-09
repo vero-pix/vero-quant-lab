@@ -3,7 +3,47 @@
 @tailwind utilities;
 
 @layer base {
+  /* Modo claro (por defecto en :root). El modo oscuro se activa con .dark, que
+     el layout aplica por defecto en <html>, así que la app arranca en oscuro. */
   :root {
+    --background: 210 30% 98%;
+    --foreground: 220 26% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 26% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 26% 14%;
+    --primary: 172 62% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 18% 93%;
+    --secondary-foreground: 220 26% 20%;
+    --muted: 220 18% 93%;
+    --muted-foreground: 220 12% 42%;
+    --accent: 218 58% 46%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 4 68% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 16% 87%;
+    --input: 220 16% 87%;
+    --ring: 172 62% 34%;
+    --radius: 0.75rem;
+
+    /* Semáforo / riesgo — ajustado para contraste sobre fondo claro */
+    --go: 158 64% 32%;
+    --go-foreground: 0 0% 100%;
+    --caution: 34 92% 40%;
+    --caution-foreground: 0 0% 100%;
+    --block: 4 70% 46%;
+    --block-foreground: 0 0% 100%;
+
+    /* Datos — sube/baja, señal A+ (oscurecidos para leer sobre blanco) */
+    --up: 158 74% 30%;
+    --down: 351 78% 46%;
+    --signal: 38 92% 38%;
+
+    color-scheme: light;
+  }
+
+  .dark {
     --background: 220 24% 9%;
     --foreground: 210 22% 90%;
     --card: 220 20% 12%;
@@ -23,7 +63,6 @@
     --border: 220 16% 17%;
     --input: 220 16% 17%;
     --ring: 172 52% 46%;
-    --radius: 0.75rem;
 
     /* Semáforo / riesgo — Guardian sereno */
     --go: 158 40% 48%;
@@ -37,14 +76,12 @@
     --up: 158 74% 42%;
     --down: 351 91% 62%;
     --signal: 48 97% 60%;
+
+    color-scheme: dark;
   }
 
   * {
     @apply border-border;
-  }
-
-  html {
-    color-scheme: dark;
   }
 
   body {

@@ -1,4 +1,5 @@
 import { Activity, Search } from "lucide-react";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   return (
@@ -13,13 +14,16 @@ export function Header() {
             <p className="truncate text-xs text-muted-foreground">Research operating system</p>
           </div>
         </div>
-        <button
-          type="button"
-          className="hidden h-9 items-center gap-2 rounded-md border bg-secondary px-3 text-sm text-muted-foreground transition-colors hover:text-foreground sm:flex"
-        >
-          <Search className="size-4" aria-hidden="true" />
-          Search
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="hidden h-9 items-center gap-2 rounded-md border bg-secondary px-3 text-sm text-muted-foreground transition-colors hover:text-foreground sm:flex"
+          >
+            <Search className="size-4" aria-hidden="true" />
+            Search
+          </button>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
