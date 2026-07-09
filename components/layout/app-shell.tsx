@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { Header } from "@/components/layout/header";
@@ -8,6 +9,10 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { VersionBadge } from "@/components/version-badge";
 
 export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
+  const pathname = usePathname();
+  // En /orderflow el globo tapa el heatmap en móvil → no lo renderizamos ahí.
+  const hideVersionBadge = pathname?.startsWith("/orderflow");
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
@@ -22,7 +27,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
           {children}
         </motion.main>
       </div>
-      <VersionBadge />
+      {!hideVersionBadge && <VersionBadge />}
     </div>
   );
 }
