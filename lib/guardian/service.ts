@@ -10,7 +10,7 @@ export class GuardianService {
   }
 
   private computeSemaforo(snapshot: GuardianSnapshot): GuardianSemaforo {
-    const { dailyLoss, consecutiveLosses, positions, holdings } = snapshot;
+    const { dailyLoss, consecutiveLosses, positions, holdings, futures } = snapshot;
 
     const bloqueo: string[] = [];
     if (dailyLoss.current >= dailyLoss.limitUsd) {
@@ -34,6 +34,14 @@ export class GuardianService {
       bloqueo.push(
         `Riesgo abierto ${positions.riskPct}% supera el límite ${positions.riskLimitPct}%.`,
       );
+    }
+    // FUTUROS: una posición cerca de liquidación (< 10% de distancia) es riesgo crítico.
+    for (const f of futures ?? []) {
+      if (f.distToLiqPct < 10) {
+        bloqueo.push(
+          `Futuros ${f.symbol} ${f.side} ${f.leverage}x a ${f.distToLiqPct}% de liquidación (< 10%).`,
+        );
+      }
     }
     if (bloqueo.length > 0) {
       return { estado: "BLOQUEO", razones: bloqueo };

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { getBinanceService, type BinanceService, type BinanceSnapshot, type BinanceOrder } from "@/lib/binance";
+import { getFuturesService, type FuturesService, type FuturesPosition } from "@/lib/futures";
 import { getMonitoringService, type MonitoringService } from "@/lib/monitoring";
 import type { GuardianHolding, GuardianSnapshot } from "./types";
 
@@ -46,6 +47,22 @@ const MOCK_SNAPSHOT: Omit<GuardianSnapshot, "updatedAt"> = {
   holdings: [
     { asset: "ETH", pair: "ETHUSDT", qty: 0.47, valueUsd: 811.13, hasStop: true, hasTp: false, protected: true, naked: false },
     { asset: "BTC", pair: "BTCUSDT", qty: 0.0085, valueUsd: 529.89, hasStop: false, hasTp: false, protected: false, naked: true },
+  ],
+  futures: [
+    {
+      symbol: "ETHUSDT",
+      side: "LONG",
+      leverage: 5,
+      entryPx: 1700,
+      markPx: 1742,
+      liqPx: 1385,
+      distToLiqPct: 20.49,
+      notionalUsd: 871,
+      marginUsd: 174.2,
+      uPnlUsd: 21,
+      uPnlPct: 12.06,
+      hasStop: false,
+    },
   ],
   services: [
     { id: "binanceguard", name: "vero-binanceguard", running: true },
@@ -208,6 +225,7 @@ export class HttpGuardianAdapter implements GuardianAdapter {
   constructor(
     private binance: BinanceService = getBinanceService(),
     private monitoring: MonitoringService = getMonitoringService(),
+    private futures: FuturesService = getFuturesService(),
     basePath?: string,
   ) {
     this.basePath = basePath ?? process.env.TRADING_DATA_PATH ?? resolve(homedir(), "Trading");
@@ -224,6 +242,15 @@ export class HttpGuardianAdapter implements GuardianAdapter {
     const holdings = computeHoldings(snapshot);
     const positions = this.computePositions(holdings, equityDayOpen);
 
+    // FUTUROS: posiciones apalancadas (informativo). Si la key no tiene permiso de
+    // futuros o falla, devuelve lista vacía sin romper el resto del snapshot.
+    let futures: FuturesPosition[] = [];
+    try {
+      futures = await this.futures.getPositions();
+    } catch {
+      futures = [];
+    }
+
     // Histórico (pérdida diaria / rachas): del JSONL, que queda solo de respaldo.
     const rows = readJsonl<BinanceTradeRow>(join(this.basePath, "diario_trades_binance.jsonl"));
     const dailyLoss = this.computeDailyLoss(rows, equityDayOpen);
@@ -238,6 +265,7 @@ export class HttpGuardianAdapter implements GuardianAdapter {
       consecutiveLosses,
       positions,
       holdings,
+      futures,
       services,
       // Placeholder; GuardianService recomputa el semáforo.
       semaforo: { estado: "GO", razones: [] },

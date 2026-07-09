@@ -1,6 +1,7 @@
-import { Activity, Coins, Layers, ShieldCheck, ShieldAlert, TrendingDown } from "lucide-react";
+import { Activity, Coins, Gauge, Layers, ShieldCheck, ShieldAlert, TrendingDown } from "lucide-react";
 import { StatusBadge, SectionHeading } from "@/components/design-system";
 import type { GuardianSnapshot, SemaforoEstado } from "@/lib/guardian";
+import type { FuturesPosition } from "@/lib/futures";
 import { cn } from "@/lib/utils";
 
 const semaforoLabel: Record<SemaforoEstado, string> = {
@@ -41,8 +42,78 @@ function fmtUsd(n: number) {
   return `$${n.toLocaleString("es-CL", { maximumFractionDigits: 2 })}`;
 }
 
+// Color de la distancia a liquidación: verde >25%, ámbar 10-25%, rojo <10%.
+function liqTone(distPct: number): { text: string; bar: string; border: string; bg: string; label: string } {
+  if (distPct < 10) return { text: "text-block", bar: "bg-block", border: "border-block/40", bg: "bg-block/5", label: "crítica" };
+  if (distPct < 25) return { text: "text-caution", bar: "bg-caution", border: "border-caution/30", bg: "bg-card/50", label: "ajustada" };
+  return { text: "text-go", bar: "bg-go", border: "border-border", bg: "bg-card/50", label: "holgada" };
+}
+
+function FuturesRow({ f }: { f: FuturesPosition }) {
+  const tone = liqTone(f.distToLiqPct);
+  const distClamped = Math.min(Math.max(f.distToLiqPct, 0), 100);
+  const pnlPos = f.uPnlUsd >= 0;
+  return (
+    <div className={cn("rounded-lg border p-4", tone.border, tone.bg)}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-foreground">{f.symbol}</span>
+          <span
+            className={cn(
+              "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold",
+              f.side === "LONG" ? "bg-go/15 text-go" : "bg-block/15 text-block",
+            )}
+          >
+            {f.side} {f.leverage}x
+          </span>
+          {f.hasStop ? (
+            <span className="inline-flex items-center gap-1 text-[11px] text-go">
+              <ShieldCheck className="size-3" /> stop
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <ShieldAlert className="size-3" /> sin stop
+            </span>
+          )}
+        </div>
+        <span className={cn("text-sm font-semibold tabular-nums", pnlPos ? "text-go" : "text-block")}>
+          {pnlPos ? "+" : ""}{fmtUsd(f.uPnlUsd)} ({pnlPos ? "+" : ""}{f.uPnlPct}%)
+        </span>
+      </div>
+
+      {/* Métrica principal: distancia a liquidación */}
+      <div className="mt-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">Distancia a liquidación</span>
+          <span className={cn("font-semibold tabular-nums", tone.text)}>{f.distToLiqPct}% · {tone.label}</span>
+        </div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
+          <div className={cn("h-full rounded-full transition-all", tone.bar)} style={{ width: `${distClamped}%` }} />
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+        <Metric label="Entrada" value={fmtUsd(f.entryPx)} />
+        <Metric label="Marca" value={fmtUsd(f.markPx)} />
+        <Metric label="Liquidación" value={f.liqPx > 0 ? fmtUsd(f.liqPx) : "—"} valueClass={tone.text} />
+        <Metric label="Margen" value={fmtUsd(f.marginUsd)} />
+        <Metric label="Nocional" value={fmtUsd(f.notionalUsd)} />
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("font-medium tabular-nums text-foreground", valueClass)}>{value}</span>
+    </div>
+  );
+}
+
 export function GuardianView({ snapshot }: { snapshot: GuardianSnapshot }) {
-  const { semaforo, dailyLoss, consecutiveLosses, positions, holdings, services, updatedAt } = snapshot;
+  const { semaforo, dailyLoss, consecutiveLosses, positions, holdings, futures, services, updatedAt } = snapshot;
   const pctUsed = Math.min(Math.max(dailyLoss.pctUsed, 0), 1);
 
   const s = semaforoStyles[semaforo.estado];
@@ -193,6 +264,21 @@ export function GuardianView({ snapshot }: { snapshot: GuardianSnapshot }) {
                   </span>
                 )}
               </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <SectionHeading icon={Gauge} title="Futuros (apalancados)" subtitle="Informativo · la distancia a liquidación manda" />
+        {futures.length === 0 ? (
+          <div className="mt-3 rounded-lg border bg-card/50 px-4 py-6 text-center text-sm text-muted-foreground">
+            Sin posiciones de futuros.
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {futures.map((f) => (
+              <FuturesRow key={`${f.symbol}-${f.side}`} f={f} />
             ))}
           </div>
         )}

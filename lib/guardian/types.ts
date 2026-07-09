@@ -1,3 +1,5 @@
+import type { FuturesPosition } from "@/lib/futures";
+
 export interface GuardianDailyLoss {
   current: number;
   limitPct: number;
@@ -52,6 +54,7 @@ export interface GuardianSnapshot {
   consecutiveLosses: GuardianConsecutiveLosses;
   positions: GuardianPositions;
   holdings: GuardianHolding[];
+  futures: FuturesPosition[];
   services: GuardianServiceStatus[];
   semaforo: GuardianSemaforo;
 }
