@@ -1,32 +1,10 @@
 "use client";
 
-import {
-  Activity,
-  BookOpen,
-  CandlestickChart,
-  GraduationCap,
-  LayoutDashboard,
-  Library,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
-
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Operations", href: "/operations", icon: Activity },
-  { name: "Guardian", href: "/guardian", icon: ShieldCheck },
-  { name: "Simulador", href: "/simulador", icon: SlidersHorizontal },
-  { name: "Gráfico", href: "/chart", icon: CandlestickChart },
-  { name: "Research", href: "/research", icon: BookOpen },
-  { name: "Academy", href: "/academy", icon: GraduationCap },
-  { name: "Knowledge", href: "/knowledge", icon: Library },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
+import { navigation } from "./nav-items";
 
 export function Sidebar() {
   const pathname = usePathname();

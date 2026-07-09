@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   BookOpen,
   Bot,
@@ -33,24 +34,28 @@ export function WorkspaceHome({
       description: "Continuar investigaciones y experimentos.",
       icon: Brain,
       status: "Ready" as const,
+      href: "/research",
     },
     {
       title: "Trading",
       description: tradingDescription,
       icon: LineChart,
       status: tradingStatus,
+      href: "/dashboard",
     },
     {
       title: "Academy",
       description: "Continuar escribiendo el curso.",
       icon: GraduationCap,
       status: "Ready" as const,
+      href: "/academy",
     },
     {
       title: "Knowledge",
       description: "Documentación y arquitectura.",
       icon: Library,
       status: "Ready" as const,
+      href: "/knowledge",
     },
     {
       title: "AI Copilot",
@@ -92,18 +97,19 @@ export function WorkspaceHome({
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {workspaceActions.map((action, index) => {
             const Icon = action.icon;
+            const clickable = !action.disabled && !!action.href;
 
-            return (
+            const card = (
               <motion.article
-                key={action.title}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
+                whileTap={clickable ? { scale: 0.98 } : undefined}
                 transition={{ duration: 0.25, delay: 0.04 * index, ease: "easeOut" }}
                 className={cn(
-                  "group rounded-lg border bg-card/80 p-4 transition-colors",
+                  "group h-full rounded-lg border bg-card/80 p-4 transition-colors",
                   action.disabled
                     ? "border-border/70 opacity-70"
-                    : "hover:border-primary/40 hover:bg-card",
+                    : "cursor-pointer hover:border-primary/40 hover:bg-card active:border-primary/40 active:bg-card",
                 )}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -119,6 +125,19 @@ export function WorkspaceHome({
                   {action.description}
                 </p>
               </motion.article>
+            );
+
+            return clickable ? (
+              <Link
+                key={action.title}
+                href={action.href!}
+                aria-label={`Ir a ${action.title}`}
+                className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {card}
+              </Link>
+            ) : (
+              <div key={action.title}>{card}</div>
             );
           })}
         </div>

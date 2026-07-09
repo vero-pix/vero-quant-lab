@@ -1,12 +1,14 @@
 import { Activity, Search } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+import { MobileNav } from "./mobile-nav";
 
 export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
       <div className="flex h-16 items-center justify-between gap-4 px-5 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-md border bg-secondary">
+          <MobileNav />
+          <div className="hidden size-9 items-center justify-center rounded-md border bg-secondary sm:flex">
             <Activity className="size-4 text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
