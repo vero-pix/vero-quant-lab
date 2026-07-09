@@ -3,6 +3,7 @@
 import {
   Activity,
   BookOpen,
+  CandlestickChart,
   GraduationCap,
   LayoutDashboard,
   Library,
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Operations", href: "/operations", icon: Activity },
   { name: "Guardian", href: "/guardian", icon: ShieldCheck },
   { name: "Simulador", href: "/simulador", icon: SlidersHorizontal },
+  { name: "Gráfico", href: "/chart", icon: CandlestickChart },
   { name: "Research", href: "/research", icon: BookOpen },
   { name: "Academy", href: "/academy", icon: GraduationCap },
   { name: "Knowledge", href: "/knowledge", icon: Library },
