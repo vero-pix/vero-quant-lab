@@ -92,6 +92,31 @@ export function relativeVolume(volumes: number[], recent = 3, baseline = 20): Se
   return out;
 }
 
+// VWAP anclado al inicio de la ventana (acumulativo). Módulo extensible.
+export function vwap(candles: Candle[]): Series {
+  const out: Series = new Array(candles.length).fill(null);
+  let cumPV = 0, cumV = 0;
+  for (let i = 0; i < candles.length; i++) {
+    const tp = (candles[i].high + candles[i].low + candles[i].close) / 3;
+    cumPV += tp * candles[i].volume;
+    cumV += candles[i].volume;
+    out[i] = cumV > 0 ? cumPV / cumV : null;
+  }
+  return out;
+}
+
+// Resistencia más cercana por ENCIMA del precio: pivote de máximo local (±k velas).
+export function nearestResistanceAbove(candles: Candle[], price: number, k = 3): number | null {
+  let best: number | null = null;
+  for (let i = k; i < candles.length - k; i++) {
+    const h = candles[i].high;
+    let pivot = true;
+    for (let j = i - k; j <= i + k; j++) if (candles[j].high > h) { pivot = false; break; }
+    if (pivot && h > price && (best === null || h < best)) best = h;
+  }
+  return best;
+}
+
 // Registro de EMAs a superponer (extensible: agrega o quita periodos acá).
 export const EMA_OVERLAYS = [
   { period: 9, color: "#3AB7BF" },

@@ -11,9 +11,11 @@ import {
   CrosshairMode,
   type IChartApi,
 } from "lightweight-charts";
-import { fetchKlines, SYMBOLS, TIMEFRAMES, TF_LABEL, type Timeframe } from "@/lib/chart/klines";
+import { Check, X } from "lucide-react";
+import { fetchKlines, SYMBOLS, TIMEFRAMES, TF_LABEL, TF_WARNING, type Timeframe } from "@/lib/chart/klines";
 import { ema, rsi, EMA_OVERLAYS } from "@/lib/chart/indicators";
 import { computeAplusMarkers } from "@/lib/chart/aplus-signals";
+import { computeChecklist, type AplusChecklist } from "@/lib/chart/checklist";
 import { cn } from "@/lib/utils";
 
 // Colores de datos (tokens de mercado, fijos como Binance).
@@ -35,12 +37,53 @@ function themeColors() {
   };
 }
 
+// Panel Checklist A+ — tabla "Filtro A+ | Estado" estilo indicador de TradingView.
+function ChecklistPanel({ symbol, tf, checklist }: { symbol: string; tf: string; checklist: AplusChecklist | null }) {
+  const allPass = checklist?.ok && checklist.passed === checklist.total;
+  return (
+    <div className="flex flex-col rounded-lg border bg-card">
+      <div className="flex items-center justify-between border-b px-4 py-2.5">
+        <h3 className="text-sm font-semibold text-foreground">Checklist A+</h3>
+        <span className="text-[11px] text-muted-foreground">{symbol.replace("USDT", "")} · {tf}</span>
+      </div>
+      {!checklist ? (
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">Leyendo…</div>
+      ) : !checklist.ok ? (
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sin datos suficientes.</div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span>Filtro A+</span><span>Estado</span>
+          </div>
+          <ul className="divide-y divide-border">
+            {checklist.rows.map((row) => (
+              <li key={row.label} className="flex items-center gap-2 px-4 py-2">
+                {row.ok ? <Check className="size-4 shrink-0 text-go" /> : <X className="size-4 shrink-0 text-block" />}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{row.label}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{row.value}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className={cn("mt-auto flex items-center justify-between border-t px-4 py-2.5 text-sm font-semibold",
+            allPass ? "text-go" : "text-muted-foreground")}>
+            <span>{allPass ? "🟢 Alineado" : "Cumple"}</span>
+            <span className="tabular-nums">{checklist.passed} / {checklist.total}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function AplusChart() {
   const [symbol, setSymbol] = useState<string>("ETHUSDT");
   const [tf, setTf] = useState<Timeframe>("15m");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aplusCount, setAplusCount] = useState(0);
+  const [checklist, setChecklist] = useState<AplusChecklist | null>(null);
 
   const mainRef = useRef<HTMLDivElement>(null);
   const rsiRef = useRef<HTMLDivElement>(null);
@@ -151,6 +194,23 @@ export function AplusChart() {
     return () => obs.disconnect();
   }, []);
 
+  // Checklist A+ en vivo para el símbolo/temporalidad elegidos (+ contexto 5m).
+  // Fetch propio (independiente del canvas) con refresco cada 30s.
+  useEffect(() => {
+    let alive = true;
+    async function loadChecklist() {
+      try {
+        const [main, ctx] = await Promise.all([fetchKlines(symbol, tf, 300), fetchKlines(symbol, "5m", 120)]);
+        if (alive) setChecklist(computeChecklist(main, ctx));
+      } catch {
+        // conservamos el último checklist
+      }
+    }
+    loadChecklist();
+    const id = setInterval(loadChecklist, 30_000);
+    return () => { alive = false; clearInterval(id); };
+  }, [symbol, tf]);
+
   return (
     <div className="space-y-4">
       {/* Selectores */}
@@ -172,8 +232,10 @@ export function AplusChart() {
             <button
               key={t}
               onClick={() => setTf(t)}
+              title={TF_WARNING[t]}
               className={cn("rounded-md px-2.5 py-1.5 text-sm font-medium tabular-nums transition-colors",
-                tf === t ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground")}
+                tf === t ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+                t === "1s" && "italic")}
             >
               {TF_LABEL[t]}
             </button>
@@ -189,30 +251,41 @@ export function AplusChart() {
         </div>
       </div>
 
-      {/* Charts */}
-      <div className="relative rounded-lg border bg-card/30 p-2">
-        {error ? (
-          <div className="flex h-[520px] items-center justify-center text-sm text-muted-foreground">
-            No pude cargar las velas ({error}).
-          </div>
-        ) : (
-          <>
-            {loading && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/40 text-sm text-muted-foreground">
-                Cargando {symbol} {TF_LABEL[tf]}…
-              </div>
-            )}
-            <div ref={mainRef} className="h-[420px] w-full" />
-            <div className="mt-1 border-t pt-1">
-              <p className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">RSI 14</p>
-              <div ref={rsiRef} className="h-[120px] w-full" />
+      {/* Aviso de 1s */}
+      {tf === "1s" && TF_WARNING["1s"] && (
+        <div className="rounded-lg border border-caution/30 bg-caution/5 px-4 py-2.5 text-xs text-caution">
+          ⚠️ {TF_WARNING["1s"]}
+        </div>
+      )}
+
+      {/* Chart + Checklist A+ lado a lado */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="relative min-w-0 rounded-lg border bg-card/30 p-2">
+          {error ? (
+            <div className="flex h-[520px] items-center justify-center text-sm text-muted-foreground">
+              No pude cargar las velas ({error}).
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              {loading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/40 text-sm text-muted-foreground">
+                  Cargando {symbol} {TF_LABEL[tf]}…
+                </div>
+              )}
+              <div ref={mainRef} className="h-[420px] w-full" />
+              <div className="mt-1 border-t pt-1">
+                <p className="px-1 text-[10px] uppercase tracking-wide text-muted-foreground">RSI 14</p>
+                <div ref={rsiRef} className="h-[120px] w-full" />
+              </div>
+            </>
+          )}
+        </div>
+
+        <ChecklistPanel symbol={symbol} tf={TF_LABEL[tf]} checklist={checklist} />
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Velas públicas de Binance · markers A+ evaluados en la temporalidad mostrada (condiciones estructurales del sistema).
+        Velas públicas de Binance · markers A+ y checklist evaluados en la temporalidad mostrada (condiciones estructurales del sistema).
         VQL solo grafica: no ejecuta órdenes.
       </p>
     </div>

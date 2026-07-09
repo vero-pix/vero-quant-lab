@@ -12,12 +12,17 @@ export interface Candle {
 export const SYMBOLS = ["ETHUSDT", "BTCUSDT", "SOLUSDT"] as const;
 export type Symbol = (typeof SYMBOLS)[number];
 
-export const TIMEFRAMES = ["1m", "5m", "15m", "1h", "4h", "1d"] as const;
+export const TIMEFRAMES = ["1s", "1m", "5m", "15m", "1h", "4h", "1d"] as const;
 export type Timeframe = (typeof TIMEFRAMES)[number];
 
 // Etiqueta legible de la temporalidad para la UI.
 export const TF_LABEL: Record<Timeframe, string> = {
-  "1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1D",
+  "1s": "1s", "1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "4h", "1d": "1D",
+};
+
+// Advertencia para 1s: es solo para observar el tick, no para operar.
+export const TF_WARNING: Partial<Record<Timeframe, string>> = {
+  "1s": "1s solo para observar — no es temporalidad de entrada; en tick/1s el spread se come el edge.",
 };
 
 export async function fetchKlines(symbol: string, interval: string, limit = 500): Promise<Candle[]> {
