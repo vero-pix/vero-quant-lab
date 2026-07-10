@@ -2,7 +2,7 @@
 // (lib/aplus/live.ts): sub-scores por componente, un score total ponderado, y
 // las lecturas cualitativas (señal, confianza, estado de mercado). Solo calcula.
 
-import type { AplusLiveState, AplusVerdict } from "./live";
+import type { AplusLiveState, AplusVerdict, AplusStep } from "./live";
 
 export type Signal = "COMPRA" | "ESPERAR" | "EVITAR";
 export type Confianza = "alta" | "media" | "baja";
@@ -24,6 +24,7 @@ export interface AplusScore {
   verdict: AplusVerdict;
   price: number;
   components: ScoreComponent[];
+  steps: AplusStep[]; // checklist A+ de 9 pasos (desde la lectura en vivo)
   updatedAt: string;
 }
 
@@ -45,7 +46,7 @@ export function computeScore(state: AplusLiveState): AplusScore {
     return {
       ok: false, total: 0, signal: "ESPERAR", confianza: "baja", mercado: "LATERAL",
       verdict: state.verdict, price: state.price,
-      components: [], updatedAt,
+      components: [], steps: state.steps, updatedAt,
     };
   }
 
@@ -99,5 +100,5 @@ export function computeScore(state: AplusLiveState): AplusScore {
   // --- Confianza ---
   const confianza: Confianza = total >= 75 ? "alta" : total >= 50 ? "media" : "baja";
 
-  return { ok: true, total, signal, confianza, mercado, verdict: state.verdict, price: state.price, components: parts, updatedAt };
+  return { ok: true, total, signal, confianza, mercado, verdict: state.verdict, price: state.price, components: parts, steps: state.steps, updatedAt };
 }

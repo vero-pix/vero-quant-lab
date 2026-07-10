@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gauge, RefreshCw } from "lucide-react";
+import { Gauge, RefreshCw, Check, X, Minus } from "lucide-react";
 import { SectionHeading } from "@/components/design-system";
 import type { AplusScore, Signal, Mercado } from "@/lib/aplus/score";
+import type { AplusStep } from "@/lib/aplus/live";
 import { cn } from "@/lib/utils";
 
 const POLL_MS = 45_000;
@@ -55,6 +56,28 @@ function Ring({ value }: { value: number }) {
   );
 }
 
+// Una fila del checklist A+: número, condición + umbral, valor en vivo, estado.
+function StepRow({ step }: { step: AplusStep }) {
+  const ok = step.state === "ok";
+  const na = step.state === "na";
+  const StateIcon = ok ? Check : na ? Minus : X;
+  const stateCls = ok ? "text-go" : na ? "text-muted-foreground" : "text-block";
+  const valueCls = ok ? "text-go" : na ? "text-muted-foreground" : "text-block";
+  return (
+    <div className="flex items-center gap-2.5 border-b border-border/50 py-2 last:border-0">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold tabular-nums text-muted-foreground">
+        {step.n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">{step.label}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{step.detail}</p>
+      </div>
+      <span className={cn("shrink-0 text-right text-xs font-semibold tabular-nums", valueCls)}>{step.value}</span>
+      <StateIcon className={cn("size-4 shrink-0", stateCls)} strokeWidth={3} />
+    </div>
+  );
+}
+
 const SYMBOLS = [
   { id: "ETHUSDT", label: "ETH" },
   { id: "BTCUSDT", label: "BTC" },
@@ -92,7 +115,7 @@ export function ScoreGauge() {
   return (
     <section>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeading icon={Gauge} title="Score A+" subtitle={`${activeLabel} · medidor 0-100 de calidad del setup en vivo`} />
+        <SectionHeading icon={Gauge} title="Score A+" subtitle={`${activeLabel} · medidor 0-100 + checklist de 9 pasos en vivo`} />
         {/* Selector de símbolo — BTC es informativo (no ejecuta), solo lectura. */}
         <div className="inline-flex shrink-0 rounded-lg border bg-secondary/50 p-0.5" role="group" aria-label="Símbolo del Score A+">
           {SYMBOLS.map((s) => (
@@ -120,7 +143,7 @@ export function ScoreGauge() {
         </div>
       ) : (
         <div className="mt-4 rounded-xl border bg-card p-5">
-          <div className="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-center">
+          <div className="grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start">
             {/* Medidor + señal */}
             <div className="flex flex-col items-center gap-3">
               <Ring value={score.total} />
@@ -134,25 +157,16 @@ export function ScoreGauge() {
               </div>
             </div>
 
-            {/* Desglose por componente */}
-            <div className="space-y-3">
-              {score.components.map((comp) => {
-                const b = band(comp.score);
-                return (
-                  <div key={comp.key}>
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="text-foreground">
-                        {comp.label}
-                        <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">{Math.round(comp.peso * 100)}%</span>
-                      </span>
-                      <span className={cn("font-semibold tabular-nums", b.text)}>{comp.score}</span>
-                    </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-secondary">
-                      <div className={cn("h-full rounded-full transition-all duration-500", b.bar)} style={{ width: `${comp.score}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Checklist A+ de 9 pasos (estilo indicador) */}
+            <div>
+              <div className="rounded-lg border bg-card/40 px-3 py-1">
+                {score.steps.map((step) => <StepRow key={step.n} step={step} />)}
+              </div>
+              {/* Fila final: veredicto (COMPRA / ESPERAR / EVITAR) */}
+              <div className={cn("mt-2 flex items-center justify-between rounded-lg border px-3 py-2.5", signalStyle[score.signal])}>
+                <span className="text-sm font-semibold tracking-wide">→ SEÑAL</span>
+                <span className="text-sm font-bold tracking-wide">{score.signal}</span>
+              </div>
             </div>
           </div>
 

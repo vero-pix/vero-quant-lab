@@ -35,21 +35,21 @@ async function fetchEthPrice(): Promise<number> {
   return Number.parseFloat(data.price);
 }
 
-export async function computeZonas(): Promise<ZonasState> {
-  const updatedAt = new Date().toISOString();
-  const empty: ZonasState = { ok: false, price: 0, niveles: [], todasAUnLado: false, updatedAt };
-
+// Lee los niveles crudos de zonas.env (mayor a menor), sin tocar el precio.
+// Devuelve null si el archivo no existe o no hay niveles válidos. Lo usa el
+// checklist A+ (lib/aplus/live.ts) para el paso "lejos de resistencia".
+export function readZoneLevels(): number[] | null {
   const file = resolve(tradingBase(), "tradingview-mcp", "scripts", "zonas.env");
-  if (!existsSync(file)) return empty;
+  if (!existsSync(file)) return null;
 
   let raw: string;
   try {
     raw = readFileSync(file, "utf-8");
   } catch {
-    return empty;
+    return null;
   }
   const m = raw.match(/ZONAS="([^"]+)"/);
-  if (!m) return empty;
+  if (!m) return null;
 
   const niveles = m[1]
     .split(",")
@@ -57,7 +57,15 @@ export async function computeZonas(): Promise<ZonasState> {
     .filter((n) => Number.isFinite(n) && n > 0)
     .sort((a, b) => b - a); // mayor a menor
 
-  if (niveles.length === 0) return empty;
+  return niveles.length > 0 ? niveles : null;
+}
+
+export async function computeZonas(): Promise<ZonasState> {
+  const updatedAt = new Date().toISOString();
+  const empty: ZonasState = { ok: false, price: 0, niveles: [], todasAUnLado: false, updatedAt };
+
+  const niveles = readZoneLevels();
+  if (!niveles) return empty;
 
   let price: number;
   try {
