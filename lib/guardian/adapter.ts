@@ -146,6 +146,12 @@ function computeEquityUsd(snapshot: BinanceSnapshot): number {
 }
 
 const STABLES = new Set(["USDT", "USDC", "BUSD", "FDUSD", "TUSD", "DAI"]);
+// Activos de UTILIDAD, no posiciones direccionales. BNB se mantiene solo para
+// pagar comisiones con descuento en Binance; no es un trade que Vero gestione con
+// stop. Se excluye del cómputo de posiciones para que no dispare un falso
+// "posición sin stop" (BLOQUEO rojo) en el Guardian. Si algún día se acumula BNB
+// como apuesta real, se revisa este supuesto.
+const FEE_UTILITY = new Set(["BNB"]);
 const MIN_HOLDING_USD = 1;
 
 // ¿Esta orden abierta protege un holding long (venta de stop) para el par?
@@ -174,7 +180,7 @@ function computeHoldings(snapshot: BinanceSnapshot): GuardianHolding[] {
   const qtyByAsset = new Map<string, number>();
   for (const b of snapshot.balances) {
     const asset = normalizeAsset(b.asset);
-    if (STABLES.has(asset)) continue;
+    if (STABLES.has(asset) || FEE_UTILITY.has(asset)) continue;
     qtyByAsset.set(asset, (qtyByAsset.get(asset) ?? 0) + b.free + b.locked);
   }
 

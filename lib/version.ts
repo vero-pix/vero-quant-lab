@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.4.0";
 
 export interface Novedad {
   version: string;
@@ -7,6 +7,16 @@ export interface Novedad {
 }
 
 export const NOVEDADES: Novedad[] = [
+  {
+    version: "1.4.0",
+    fecha: "11 jul 2026",
+    cambios: [
+      "🌊 Order Flow: heatmap de liquidez tipo Bookmap con feed real de Binance (@depth/@aggTrade), DOM, CVD y volume profile.",
+      "🎯 Score A+ para BTC en el Dashboard, junto al de ETH.",
+      "🌐 VQL en dominio propio: https://vql.economics.cl con HTTPS y contraseña, accesible desde el celular sin app.",
+      "🛡️ Guardian: el BNB de comisiones ya no se marca como 'posición sin stop' (era un falso BLOQUEO); se trata como activo de utilidad.",
+    ],
+  },
   {
     version: "1.3.0",
     fecha: "9 jul 2026",
