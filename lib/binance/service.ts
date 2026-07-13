@@ -1,11 +1,16 @@
 import type { BinanceAdapter } from "./adapter";
-import type { BinanceSnapshot, BinanceBalance, BinanceOrder } from "./types";
+import type { BinanceSnapshot, BinanceBalance, BinanceOrder, BinanceTrade } from "./types";
 
 export class BinanceService {
   constructor(private adapter: BinanceAdapter) {}
 
   async getSnapshot(): Promise<BinanceSnapshot> {
     return this.adapter.fetchSnapshot();
+  }
+
+  // Ejecuciones reales del par (fills de myTrades), ordenadas por tiempo.
+  async getMyTrades(symbol: string): Promise<BinanceTrade[]> {
+    return this.adapter.fetchMyTrades(symbol);
   }
 
   async getBalances(): Promise<BinanceBalance[]> {

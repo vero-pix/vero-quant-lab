@@ -1,4 +1,4 @@
-export const APP_VERSION = "1.4.0";
+export const APP_VERSION = "1.5.0";
 
 export interface Novedad {
   version: string;
@@ -7,6 +7,16 @@ export interface Novedad {
 }
 
 export const NOVEDADES: Novedad[] = [
+  {
+    version: "1.5.0",
+    fecha: "12 jul 2026",
+    cambios: [
+      "📜 Historial de ejecuciones: las operaciones REALES ejecutadas en Binance (myTrades con key read-only), sin abrir Binance ni Telegram.",
+      "🔗 Trades cerrados por FIFO: casa compras con ventas → PnL realizado por trade, comisión y su moneda (marca si se pagó en BNB).",
+      "📊 Resumen real: n trades, win rate, neto acumulado y comisión total — el veredicto sale de trades reales, no del senales_aplus simulado.",
+      "🪙 ETH como principal y BTC en sección informativa aparte (no se opera).",
+    ],
+  },
   {
     version: "1.4.0",
     fecha: "11 jul 2026",

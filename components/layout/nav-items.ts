@@ -3,6 +3,7 @@ import {
   BookOpen,
   CandlestickChart,
   GraduationCap,
+  History,
   LayoutDashboard,
   Layers,
   Library,
@@ -22,6 +23,7 @@ export interface NavItem {
 export const navigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Operations", href: "/operations", icon: Activity },
+  { name: "Historial", href: "/historial", icon: History },
   { name: "Guardian", href: "/guardian", icon: ShieldCheck },
   { name: "Simulador", href: "/simulador", icon: SlidersHorizontal },
   { name: "Gráfico", href: "/chart", icon: CandlestickChart },

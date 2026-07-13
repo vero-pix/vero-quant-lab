@@ -12,7 +12,7 @@ export function getBinanceService(): BinanceService {
   return instance;
 }
 
-export type { BinanceSnapshot, BinanceBalance, BinanceOrder } from "./types";
+export type { BinanceSnapshot, BinanceBalance, BinanceOrder, BinanceTrade } from "./types";
 export type { BinanceAdapter } from "./adapter";
 export { BinanceService } from "./service";
 export { MockBinanceAdapter, HttpBinanceAdapter } from "./adapter";
