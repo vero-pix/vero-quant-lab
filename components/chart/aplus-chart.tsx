@@ -9,13 +9,17 @@ import {
   createSeriesMarkers,
   ColorType,
   CrosshairMode,
+  LineStyle,
   type IChartApi,
+  type ISeriesApi,
+  type IPriceLine,
 } from "lightweight-charts";
 import { Check, X } from "lucide-react";
 import { fetchKlines, SYMBOLS, TIMEFRAMES, TF_LABEL, TF_WARNING, type Timeframe } from "@/lib/chart/klines";
 import { ema, rsi, EMA_OVERLAYS } from "@/lib/chart/indicators";
 import { computeAplusMarkers } from "@/lib/chart/aplus-signals";
 import { computeChecklist, type AplusChecklist } from "@/lib/chart/checklist";
+import type { ZonasState } from "@/lib/cockpit/zonas";
 import { cn } from "@/lib/utils";
 
 // Colores de datos (tokens de mercado, fijos como Binance).
@@ -35,6 +39,24 @@ function themeColors() {
     signal: tokenHsl("--signal", "#F0B90B"),
     exit: tokenHsl("--muted-foreground", "#9aa"),
   };
+}
+
+// Colores de las zonas S/R — mismos tokens que el panel "Zonas S/R"
+// (resistencia = --block rojo, soporte = --go verde), sensibles al tema.
+function zoneColors() {
+  return {
+    resistencia: tokenHsl("--block", "#F6465D"),
+    soporte: tokenHsl("--go", "#0ECB81"),
+  };
+}
+
+// Etiqueta de la línea: precio + distancia con signo al precio actual.
+// Ej: "R 1946.5  −16" (resistencia) · "S 1900  +31" (soporte).
+function zoneLineTitle(z: ZonasState["niveles"][number]): string {
+  const tag = z.tipo === "resistencia" ? "R" : "S";
+  const precio = z.precio.toLocaleString("es-CL", { maximumFractionDigits: 2 });
+  const dist = `${z.distUsd >= 0 ? "+" : "−"}${Math.abs(Math.round(z.distUsd))}`;
+  return `${tag} ${precio}  ${dist}`;
 }
 
 // Panel Checklist A+ — tabla "Filtro A+ | Estado" estilo indicador de TradingView.
@@ -84,10 +106,14 @@ export function AplusChart() {
   const [error, setError] = useState<string | null>(null);
   const [aplusCount, setAplusCount] = useState(0);
   const [checklist, setChecklist] = useState<AplusChecklist | null>(null);
+  const [zonas, setZonas] = useState<ZonasState | null>(null);
+  const [themeTick, setThemeTick] = useState(0);
 
   const mainRef = useRef<HTMLDivElement>(null);
   const rsiRef = useRef<HTMLDivElement>(null);
   const chartsRef = useRef<{ main?: IChartApi; rsi?: IChartApi }>({});
+  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const zoneLinesRef = useRef<IPriceLine[]>([]);
 
   // (Re)construye ambos charts al cambiar símbolo/temporalidad.
   useEffect(() => {
@@ -125,6 +151,10 @@ export function AplusChart() {
         upColor: UP, downColor: DOWN, borderUpColor: UP, borderDownColor: DOWN, wickUpColor: UP, wickDownColor: DOWN,
       });
       candleSeries.setData(candles.map((k) => ({ time: k.time as never, open: k.open, high: k.high, low: k.low, close: k.close })));
+      // Serie nueva → las price lines viejas murieron con el chart anterior; el
+      // efecto de zonas las redibuja sobre esta serie (deps incluyen `loading`).
+      candleSeriesRef.current = candleSeries;
+      zoneLinesRef.current = [];
 
       const volSeries = main.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "" });
       volSeries.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
@@ -174,6 +204,8 @@ export function AplusChart() {
       chartsRef.current.main?.remove();
       chartsRef.current.rsi?.remove();
       chartsRef.current = {};
+      candleSeriesRef.current = null;
+      zoneLinesRef.current = [];
     };
   }, [symbol, tf]);
 
@@ -189,6 +221,7 @@ export function AplusChart() {
       };
       chartsRef.current.main?.applyOptions(opts);
       chartsRef.current.rsi?.applyOptions(opts);
+      setThemeTick((t) => t + 1); // recolorea las zonas S/R con el tema nuevo
     });
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme"] });
     return () => obs.disconnect();
@@ -210,6 +243,52 @@ export function AplusChart() {
     const id = setInterval(loadChecklist, 30_000);
     return () => { alive = false; clearInterval(id); };
   }, [symbol, tf]);
+
+  // Zonas S/R desde la MISMA fuente que el panel (/api/zonas → zonas.env + precio).
+  // Se refresca sola cada 45s, así que cuando el detector reescribe zonas.env, las
+  // líneas del chart se actualizan sin tocar TradingView.
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      try {
+        const r = await fetch("/api/zonas", { cache: "no-store" });
+        const data = (await r.json()) as ZonasState;
+        if (alive) setZonas(data);
+      } catch {
+        // conservamos el último estado de zonas
+      }
+    }
+    load();
+    const id = setInterval(load, 45_000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
+  // Dibuja las zonas como price lines horizontales sobre las velas: rojas =
+  // resistencia, verdes = soporte, con etiqueta precio + distancia. Solo ETH tiene
+  // zonas.env; en BTC/SOL no se dibuja nada. Redibuja al rearmar el chart (loading),
+  // al cambiar de símbolo/temporalidad, al refrescar zonas o al cambiar de tema.
+  useEffect(() => {
+    const series = candleSeriesRef.current;
+    if (!series) return;
+    for (const line of zoneLinesRef.current) {
+      try { series.removePriceLine(line); } catch { /* serie ya reemplazada */ }
+    }
+    zoneLinesRef.current = [];
+    if (symbol !== "ETHUSDT" || !zonas?.ok) return;
+
+    const cols = zoneColors();
+    for (const z of zonas.niveles) {
+      const line = series.createPriceLine({
+        price: z.precio,
+        color: z.tipo === "resistencia" ? cols.resistencia : cols.soporte,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: zoneLineTitle(z),
+      });
+      zoneLinesRef.current.push(line);
+    }
+  }, [zonas, symbol, tf, loading, themeTick]);
 
   return (
     <div className="space-y-4">
@@ -248,6 +327,13 @@ export function AplusChart() {
             </span>
           ))}
           <span className="inline-flex items-center gap-1 font-medium text-signal">◆ A+ ({aplusCount})</span>
+          {symbol === "ETHUSDT" && zonas?.ok && zonas.niveles.length > 0 && (
+            <span className="inline-flex items-center gap-1" title="Zonas S/R desde zonas.env — se refrescan solas">
+              <span className="inline-block h-0 w-3 border-t border-dashed border-block" />
+              <span className="inline-block h-0 w-3 border-t border-dashed border-go" />
+              S/R ({zonas.niveles.length})
+            </span>
+          )}
         </div>
       </div>
 
