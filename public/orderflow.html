@@ -44,6 +44,8 @@
   .mode-badge{padding:3px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
   .mode-badge.sim{background:#1a2a1a;color:#3acf6f;border:1px solid #2a4a2a}
   .mode-badge.live{background:#2a1a1a;color:#ef5350;border:1px solid #4a2a2a;animation:pulse 1.2s infinite}
+  /* Móvil: el badge de modo satura el header angosto — se oculta (#26). */
+  @media (max-width:640px){ .mode-badge{display:none} }
   .price{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;min-width:78px}
   .stat{color:var(--muted);font-size:11px;display:flex;flex-direction:column;line-height:1.15}
   .stat .lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
