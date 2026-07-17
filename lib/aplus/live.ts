@@ -41,7 +41,7 @@ export interface AplusLiveState {
 }
 
 // Umbrales A+ (A+_construccion.md — iguales al Simulador y al detector).
-const CFG = { rsiMin: 50, rsiMax: 70, er1Min: 0.3, er5Min: 0.25, momAtr: 0.6, mom2Min: 1.0, volrMin: 1.0, liqMin: 50, pullbackAtr: 0.5, resMinUsd: 3 };
+const CFG = { rsiMin: 50, rsiMax: 70, er1Min: 0.3, er5Min: 0.25, momAtr: 0.6, mom2Min: 1.0, volrMin: 1.0, liqMin: 50, pullbackAtr: 0.5, trendAtr: 0.25, resMinUsd: 3 };
 
 interface Bar { high: number; low: number; close: number; volume: number }
 
@@ -191,6 +191,9 @@ export async function computeAplusLive(symbol = "ETHUSDT"): Promise<AplusLiveSta
   const pullbackOk = price - e9 <= CFG.pullbackAtr * atr;
   const mom5Ok = mom5 >= CFG.momAtr * atr;
   const mom2Ok = mom2 >= CFG.mom2Min;
+  // Tendencia = EMA9 sobre EMA21 con margen sobre el ruido (detector: TREND_ATR=0.25).
+  // No basta el cruce: el gap debe superar 0.25×ATR, o es tendencia plana/falsa.
+  const trendOk = e9 - e21 >= CFG.trendAtr * atr;
 
   // Paso 9: distancia a la resistencia más cercana ARRIBA del precio. Las zonas
   // vienen de zonas.env (solo ETH). Sin zonas => "na" (no inventamos niveles).
@@ -202,7 +205,7 @@ export async function computeAplusLive(symbol = "ETHUSDT"): Promise<AplusLiveSta
     { n: 1, label: "Mercado vivo", detail: `volumen ≥ ${CFG.liqMin}`, value: fmt(volabs, 0), state: volabs >= CFG.liqMin ? "ok" : "fail", gate: true },
     { n: 2, label: "Tendencia 1m", detail: `ER ≥ ${CFG.er1Min.toFixed(2)}`, value: fmt(er), state: er >= CFG.er1Min ? "ok" : "fail", gate: true },
     { n: 3, label: "Tendencia 5m", detail: `ER ≥ ${CFG.er5Min.toFixed(2)}`, value: fmt(er5), state: er5 >= CFG.er5Min ? "ok" : "fail", gate: true },
-    { n: 4, label: "Tendencia alcista", detail: "EMA9 > EMA21", value: e9 > e21 ? "▲ alcista" : "▼ bajista", state: e9 > e21 ? "ok" : "fail", gate: true },
+    { n: 4, label: "Tendencia alcista", detail: `EMA9−EMA21 ≥ ${CFG.trendAtr}×ATR`, value: trendOk ? `▲ Δ${fmt(e9 - e21)}` : `▼ Δ${fmt(e9 - e21)} < ${fmt(CFG.trendAtr * atr)}`, state: trendOk ? "ok" : "fail", gate: true },
     {
       n: 5, label: "Pullback + rebote",
       detail: `pull ≤ ${CFG.pullbackAtr}×ATR · mom5 ≥ ${CFG.momAtr}×ATR · mom2 ≥ ${CFG.mom2Min.toFixed(1)}`,
