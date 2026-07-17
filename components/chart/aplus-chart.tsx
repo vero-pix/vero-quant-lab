@@ -14,11 +14,11 @@ import {
   type ISeriesApi,
   type IPriceLine,
 } from "lightweight-charts";
-import { Check, X } from "lucide-react";
+import { Check, X, Minus } from "lucide-react";
 import { fetchKlines, SYMBOLS, TIMEFRAMES, TF_LABEL, TF_WARNING, type Timeframe } from "@/lib/chart/klines";
 import { ema, rsi, EMA_OVERLAYS } from "@/lib/chart/indicators";
 import { computeAplusMarkers } from "@/lib/chart/aplus-signals";
-import { computeChecklist, type AplusChecklist } from "@/lib/chart/checklist";
+import type { AplusLiveState } from "@/lib/aplus/live";
 import type { ZonasState } from "@/lib/cockpit/zonas";
 import { cn } from "@/lib/utils";
 
@@ -59,39 +59,56 @@ function zoneLineTitle(z: ZonasState["niveles"][number]): string {
   return `${tag} ${precio}  ${dist}`;
 }
 
-// Panel Checklist A+ — tabla "Filtro A+ | Estado" estilo indicador de TradingView.
-function ChecklistPanel({ symbol, tf, checklist }: { symbol: string; tf: string; checklist: AplusChecklist | null }) {
-  const allPass = checklist?.ok && checklist.passed === checklist.total;
+// Panel Checklist A+ — consume /api/aplus-live (MISMA fuente que el cockpit y el
+// bot de Telegram: byte-fiel al detector calc_indicators.js). No calcula su propia
+// lógica, así no vuelve a divergir del sistema. El A+ está definido SOLO para ETH
+// 1m, por eso el panel no sigue el selector del chart: siempre evalúa ETH 1m.
+function ChecklistPanel({ chartSymbol, state }: { chartSymbol: string; state: AplusLiveState | null }) {
+  const verdictTone =
+    state?.verdict === "alineado" ? "text-go"
+      : state?.verdict === "esperar" ? "text-caution"
+        : "text-muted-foreground";
+  const passed = state?.steps.filter((s) => s.state === "ok").length ?? 0;
+  const evaluable = state?.steps.filter((s) => s.state !== "na").length ?? 0;
   return (
     <div className="flex flex-col rounded-lg border bg-card">
       <div className="flex items-center justify-between border-b px-4 py-2.5">
         <h3 className="text-sm font-semibold text-foreground">Checklist A+</h3>
-        <span className="text-[11px] text-muted-foreground">{symbol.replace("USDT", "")} · {tf}</span>
+        <span className="text-[11px] text-muted-foreground">ETH · 1m</span>
       </div>
-      {!checklist ? (
+      {!state ? (
         <div className="px-4 py-8 text-center text-sm text-muted-foreground">Leyendo…</div>
-      ) : !checklist.ok ? (
-        <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sin datos suficientes.</div>
+      ) : !state.ok ? (
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">Sin datos de Binance ahora.</div>
       ) : (
         <>
+          {chartSymbol !== "ETHUSDT" && (
+            <p className="border-b bg-muted/30 px-4 py-1.5 text-[10px] leading-tight text-muted-foreground">
+              El A+ está definido para ETH 1m — el panel muestra ETH aunque el chart esté en {chartSymbol.replace("USDT", "")}.
+            </p>
+          )}
           <div className="flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             <span>Filtro A+</span><span>Estado</span>
           </div>
           <ul className="divide-y divide-border">
-            {checklist.rows.map((row) => (
-              <li key={row.label} className="flex items-center gap-2 px-4 py-2">
-                {row.ok ? <Check className="size-4 shrink-0 text-go" /> : <X className="size-4 shrink-0 text-block" />}
+            {state.steps.map((s) => (
+              <li key={s.n} className="flex items-center gap-2 px-4 py-2">
+                {s.state === "ok" ? <Check className="size-4 shrink-0 text-go" />
+                  : s.state === "na" ? <Minus className="size-4 shrink-0 text-muted-foreground" />
+                    : <X className="size-4 shrink-0 text-block" />}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{row.label}</p>
-                  <p className="truncate text-[11px] text-muted-foreground">{row.value}</p>
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {s.n}. {s.label}
+                    {s.gate && <span className="ml-1.5 align-middle text-[9px] uppercase tracking-wide text-muted-foreground">contexto</span>}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">{s.detail} · {s.value}</p>
                 </div>
               </li>
             ))}
           </ul>
-          <div className={cn("mt-auto flex items-center justify-between border-t px-4 py-2.5 text-sm font-semibold",
-            allPass ? "text-go" : "text-muted-foreground")}>
-            <span>{allPass ? "🟢 Alineado" : "Cumple"}</span>
-            <span className="tabular-nums">{checklist.passed} / {checklist.total}</span>
+          <div className={cn("mt-auto flex items-center justify-between border-t px-4 py-2.5 text-sm font-semibold", verdictTone)}>
+            <span>{state.headline}</span>
+            <span className="tabular-nums">{passed} / {evaluable}</span>
           </div>
         </>
       )}
@@ -105,7 +122,7 @@ export function AplusChart() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aplusCount, setAplusCount] = useState(0);
-  const [checklist, setChecklist] = useState<AplusChecklist | null>(null);
+  const [aplusLive, setAplusLive] = useState<AplusLiveState | null>(null);
   const [zonas, setZonas] = useState<ZonasState | null>(null);
   const [themeTick, setThemeTick] = useState(0);
 
@@ -227,22 +244,24 @@ export function AplusChart() {
     return () => obs.disconnect();
   }, []);
 
-  // Checklist A+ en vivo para el símbolo/temporalidad elegidos (+ contexto 5m).
-  // Fetch propio (independiente del canvas) con refresco cada 30s.
+  // Checklist A+ en vivo — MISMA fuente que el cockpit y el bot (/api/aplus-live,
+  // ETH 1m, byte-fiel al detector). El A+ solo es válido en ETH 1m, así que NO
+  // depende del selector del chart. Refresco cada 30s.
   useEffect(() => {
     let alive = true;
-    async function loadChecklist() {
+    async function loadAplus() {
       try {
-        const [main, ctx] = await Promise.all([fetchKlines(symbol, tf, 300), fetchKlines(symbol, "5m", 120)]);
-        if (alive) setChecklist(computeChecklist(main, ctx));
+        const r = await fetch("/api/aplus-live", { cache: "no-store" });
+        const data = (await r.json()) as AplusLiveState;
+        if (alive) setAplusLive(data);
       } catch {
-        // conservamos el último checklist
+        // conservamos el último estado
       }
     }
-    loadChecklist();
-    const id = setInterval(loadChecklist, 30_000);
+    loadAplus();
+    const id = setInterval(loadAplus, 30_000);
     return () => { alive = false; clearInterval(id); };
-  }, [symbol, tf]);
+  }, []);
 
   // Zonas S/R desde la MISMA fuente que el panel (/api/zonas → zonas.env + precio).
   // Se refresca sola cada 45s, así que cuando el detector reescribe zonas.env, las
@@ -367,7 +386,7 @@ export function AplusChart() {
           )}
         </div>
 
-        <ChecklistPanel symbol={symbol} tf={TF_LABEL[tf]} checklist={checklist} />
+        <ChecklistPanel chartSymbol={symbol} state={aplusLive} />
       </div>
 
       <p className="text-[11px] text-muted-foreground">
