@@ -44,9 +44,9 @@ Ambos leen klines públicos de Binance, pero difieren en método antes de llegar
 
 Consecuencia práctica: el conteo "X / 9" del panel del Chart **no es comparable** con el veredicto del cockpit ni del bot. Con tf por defecto 15m, el panel evalúa un instrumento temporal distinto al que opera el sistema (scalping 1m).
 
-## Riesgos de divergencia vs el indicador Pine (a confirmar con el `.pine`)
+## Riesgos de divergencia vs el indicador Pine
 
-No tengo el source Pine en el repo VQL (`KNOWLEDGE/Pine.md` y `KNOWLEDGE/TradingView.md` son solo glosario). Vive en el repo Trading (`~/Trading/tradingview-mcp/scripts/`) o en TradingView. Para cerrar #39 hay que confirmar, filtro por filtro, contra ese source. Puntos donde Pine y VQL suelen divergir:
+> Resueltos con el source ya obtenido — ver "Reconciliación con el Pine y el detector" más abajo. Se dejan como referencia de los puntos que se verificaron:
 
 - **Suavizado Wilder vs SMA.** `ta.rsi` y `ta.atr` de Pine usan RMA (Wilder). VQL usa Wilder en RSI y ATR (bien), pero el ER de Kaufman y el VolR son medias simples: confirmar que el Pine calcula ER y VolR con la misma ventana y el mismo tipo de media.
 - **Ancla del VWAP.** `ta.vwap` de Pine ancla por sesión (reset diario en la zona horaria del símbolo/chart, no necesariamente 00:00 UTC). `live.ts` ancla a 00:00 **UTC**; `checklist.ts` ancla a la ventana. Los tres pueden dar VWAP distinto en la misma vela. Confirmar zona horaria del reset en el Pine.
@@ -55,10 +55,29 @@ No tengo el source Pine en el repo VQL (`KNOWLEDGE/Pine.md` y `KNOWLEDGE/Trading
 - **Resistencia.** ¿El Pine dibuja S/R desde niveles fijos (equivalente a `zonas.env`, como `live.ts`) o desde pivotes calculados (como `checklist.ts`)? Y ¿umbral en $ o en %? Esta es la divergencia más grande a resolver.
 - **Redondeo y locale.** VQL formatea con `es-CL` (coma decimal) y redondeos por filtro (RSI a 0 decimales, resto a 2). Es solo presentación, pero si se compara el *display* contra el Pine, alinear decimales por métrica.
 
-## Qué necesito para cerrar #39
+## Reconciliación con el Pine y el detector (cerrada 17 Jul)
 
-1. **El source `.pine`** del indicador A+ (o export del script). Está fuera del repo VQL — probablemente en `~/Trading/tradingview-mcp/scripts/`. Sin él, la comparación contra TradingView queda como matriz de riesgos, no como verificación.
-2. Confirmar cuál es la **referencia de verdad** para el panel del Chart: el detector `calc_indicators.js` (lo que se opera) o el Pine (lo que se mira). Deberían coincidir; si no, ese es un hallazgo aparte para el Agente Trading.
+Con el repo Trading conectado se obtuvo el source `tradingview-mcp/pine/senal_aplus_completa.pine` y el detector `tradingview-mcp/scripts/calc_indicators.js`. La cadena de verdad quedó resuelta:
+
+- **`live.ts` es byte-fiel al detector `calc_indicators.js`.** Misma vela cerrada (`slice(0,-1)`), mismo ER Kaufman 14, RSI/ATR Wilder, mom5/mom2, y el mismo VolR (promedio de TODA la ventana cerrada, no SMA). Confirmado línea por línea. `live.ts` es la referencia correcta para alinear el panel del Chart.
+- **El Pine coincide con el detector en lo esencial** (1m, vela cerrada vía offset `[1]`, ER dual, Wilder, mom2 ≥ $1, VWAP de sesión `ta.vwap(hlc3)`, resistencia por nivel fijo con `dist ≥ $3`), pero **diverge del detector en tres puntos** — esto es dominio del Agente Trading, no de VQL:
+
+  | Punto | Detector / `live.ts` | Pine | Nota |
+  |---|---|---|---|
+  | Denominador VolR | promedio de **toda la ventana** cerrada | `ta.sma(volume[1], 50)` — **50 velas** | ventanas distintas → VolR distinto en la misma vela |
+  | Umbral "mercado vivo" (volabs) | `liqMin = 50` | `volabs_min = 10.0` (default) | 5× de diferencia en el gate F1 |
+  | Pullback (F5) | distancia `precio−EMA9 ≤ 0.5×ATR` | estructural: `low` tocó EMA9 en las últimas 3 velas **y** cierre > EMA9 | definiciones distintas de "pullback" |
+
+  Además el Pine usa resistencias **manuales** (inputs `res1/2/3`) mientras el detector/`live.ts` leen `zonas.env`: mismo umbral ($3) pero distinta fuente — hay que mantener los mismos números.
+
+### Objetivo de paridad para el panel del Chart
+
+Alinear `checklist.ts` a **`live.ts` (= detector)**, no directamente al Pine. Razón: `live.ts` está verificado como espejo de lo que se opera; el Pine tiene sus propias tres divergencias que deben resolverse del lado Trading. Fijar el panel contra `live.ts` cierra la parte de VQL de #39 de forma limpia y deja el Pine como tarea separada del Agente Trading.
+
+## Frontera VQL / Trading
+
+- **VQL (esta sesión puede hacerlo):** reescribir `lib/chart/checklist.ts` para reutilizar la lógica de `lib/aplus/live.ts` — 1m sobre velas cerradas, gate de liquidez, `mom2 ≥ 1.0`, VolR y VWAP de `live.ts`, resistencia desde `zonas.env`. Todo dentro de `lib/chart/*`. No toca los `vero-*`.
+- **Trading (fuera de VQL — vía Agente Trading / Claude Code en `~/Trading`):** resolver las tres divergencias Pine↔detector (VolR SMA50 vs ventana, volabs 10 vs 50, pullback estructural vs distancia) y sincronizar las resistencias del Pine con `zonas.env`.
 
 ## Plan recomendado
 
