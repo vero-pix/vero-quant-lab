@@ -194,9 +194,10 @@ export function HistorialView({ snapshot }: { snapshot: HistorialSnapshot }) {
       <SymbolBlock data={snapshot.informativo} informativo />
 
       <p className="text-[11px] text-muted-foreground">
-        Actualizado: {new Date(snapshot.updatedAt).toLocaleString("es-CL")} · Datos reales de Binance
-        (myTrades, key read-only). El veredicto y el PnL salen de ejecuciones reales, no del
-        senales_aplus simulado. VQL es visor: no ejecuta órdenes.
+        Actualizado: {new Date(snapshot.updatedAt).toLocaleString("es-CL")} · Ventana: últimos 14 días
+        · Datos reales de Binance (myTrades, key read-only). El veredicto y el PnL salen de ejecuciones
+        reales, no del senales_aplus simulado — misma fuente y ventana que el semáforo de Telegram.
+        VQL es visor: no ejecuta órdenes.
       </p>
     </div>
   );
