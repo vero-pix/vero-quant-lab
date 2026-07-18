@@ -20,6 +20,7 @@ import { ema, rsi, EMA_OVERLAYS } from "@/lib/chart/indicators";
 import { computeAplusMarkers } from "@/lib/chart/aplus-signals";
 import type { AplusLiveState } from "@/lib/aplus/live";
 import type { ZonasState } from "@/lib/cockpit/zonas";
+import { AplusSnapshot } from "./aplus-snapshot";
 import { cn } from "@/lib/utils";
 
 // Colores de datos (tokens de mercado, fijos como Binance).
@@ -354,6 +355,7 @@ export function AplusChart() {
             </span>
           )}
         </div>
+        <AplusSnapshot state={aplusLive} zonas={zonas} />
       </div>
 
       {/* Aviso de 1s */}
