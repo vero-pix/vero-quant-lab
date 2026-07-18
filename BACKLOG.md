@@ -1,6 +1,6 @@
 # BACKLOG — Vero Quant Lab
 
-Ideas y tareas parqueadas. El plan agendado vive en `ROADMAP.md`; esto es la lista cruda. Última actualización: 9 Julio 2026.
+Ideas y tareas parqueadas. El plan agendado vive en `ROADMAP.md`; esto es la lista cruda. Última actualización: 18 Julio 2026. Estado al día en `HANDOFF_2026-07-18.md`.
 
 ---
 
@@ -21,7 +21,7 @@ Ideas y tareas parqueadas. El plan agendado vive en `ROADMAP.md`; esto es la lis
 | B-09 | Homologar LabService al patrón adapter | 🟢 Menor | Diferido conscientemente. |
 
 ## Completadas
-B-01 keys read-only ✓ · B-04 tema claro/oscuro ✓ · Chart A+ (Fase B) ✓ · Futuros ✓ · Cockpit Fase A ✓ · fix anti-spam Telegram ✓.
+B-01 keys read-only ✓ · B-04 tema claro/oscuro ✓ · Chart A+ (Fase B) ✓ · Futuros ✓ · Cockpit Fase A ✓ · fix anti-spam Telegram ✓ · **B-05 Fase C — API estado VPS ✓ (18 jul, verificada de punta a punta)** · **B-12 Order Flow ✓** · **B-13 Noticias RSS ✓ (18 jul)** · **#39 paridad Checklist A+ ✓** · **zonas S/R sobre el Chart ✓** · **#26 badge Order Flow móvil ✓** · **#29 snapshot A+ a PDF ✓** · **deploy VPS + dominio vql.economics.cl ✓**.
 
 ---
 

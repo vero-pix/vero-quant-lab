@@ -1,8 +1,12 @@
 # ROADMAP — Vero Quant Lab
 
-Última actualización: 9 Julio 2026
+Última actualización: 18 Julio 2026 · estado al día en `HANDOFF_2026-07-18.md`
 
-## Dónde estamos: V1.3 — Cockpit tomando forma
+## Dónde estamos: V1.5 — Cockpit en producción, con data real
+
+Desplegado en https://vql.economics.cl (VPS Hetzner). Cerrados: deploy + dominio, Fase C (estado del VPS real vía `status_server.cjs`), Order Flow, Historial real (myTrades + FIFO), paridad del Checklist A+ con el detector (#39), zonas S/R sobre el Chart, panel de Noticias (RSS) y snapshot A+ a PDF. El cockpit muestra el sistema real de punta a punta. Lo que falta para mejorar el A+ está gated en DATA (30-60 días para recalibrar), no en features.
+
+## Historial: V1.3 — Cockpit tomando forma
 
 El laboratorio ya es un cockpit real, con data en vivo y seguro. El norte es la visión **"Trading Cockpit A+"** (PAICIO): ver todo el trading en una sola pantalla, sin abrir Telegram + TradingView + Binance por separado.
 

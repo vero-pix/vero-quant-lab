@@ -1,26 +1,24 @@
 # NEXT_TASK.md
 
-Última actualización: 9 Julio 2026
+Última actualización: 18 Julio 2026
 
 ---
 
-## En curso
+> Estado al día en `HANDOFF_2026-07-18.md`. Deploy, Fase C, Order Flow, #39, noticias y snapshot A+ ya cerrados.
 
-- 🚧 **Deploy de VQL en el VPS Hetzner** (por ssh, sin tocar los `vero-*`): swap 4GB → clonar → `.env.local` read-only → `npm ci` + build acotado → systemd `vero-vql` en puerto 3000.
-- 🚧 **Score A+** (medidor 0-100 + desglose) — construyéndose.
+## Inmediata
 
-## Inmediatas (esta sesión)
+1. **Push + redeploy** de los últimos commits (features #28/#29) al VPS: `git push origin main` en el Mac → `git pull && npm run build && systemctl restart vero-vql` en el VPS. Solo `vero-vql`.
 
-1. Terminar el deploy en el VPS y verificar que responde en `:3000` sin afectar los bots.
-2. **Tailscale**: instalar en el VPS + celular → acceder a VQL desde cualquier lado, seguro.
-3. Verificar Score A+ y el Checklist A+ del chart contra el indicador real de TradingView.
+## Después (sin urgencia)
 
-## Después
+1. **Limpieza del bot Telegram** (Trading-side): quitar comando `posicion` (Capital, muerto) y la ruta de ejecución por Capital. Prompt listo.
+2. **Heatmap de mercado** (quick win): cajas por moneda, % 24h de Binance.
+3. **Simulador A+ carril 2** (espejo conductual) — requiere normalizar el historial (B-03) primero.
 
-1. **Fase C — API de estado del VPS** (localhost, co-locado): Operations/Telegram/servicios reales.
-2. **Heatmap de mercado** (quick win).
-3. **Order Flow (R-005)**: adaptar OrderFlowMap (MIT) + feed Binance.
-4. **Simulador A+ carril 2** (espejo conductual) — requiere normalizar el historial.
+## Gated en data (el norte)
+
+- **Mejorar el A+**: correr la sesión de calibración (R-006, barrido + walk-forward) cuando el historial acumule ≥30 días (hoy ~15). Nunca recalibrar a mano.
 
 ---
 
